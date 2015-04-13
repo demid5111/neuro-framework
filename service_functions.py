@@ -7,7 +7,7 @@ def output (message,instance = None,isDebug = True):
   log = ""
   if instance is not None:
     log = "<{}>".format(instance)
-  print  time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log,str(message))
+  print ( time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log,str(message)))
 
 def makeIntMatrix (rows,cols):
   matrix = []

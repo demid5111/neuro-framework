@@ -1,4 +1,5 @@
 import random
+from common_logic.network_type import NetworkType
 from hopfield.layer import Layer
 from service_functions import output
 
@@ -7,6 +8,7 @@ __author__ = 'demidovs'
 class HNN ():
   def __init__(self,A,B):
     self.numLayers = -1
+    self.network_type = NetworkType.HNN
     self.layers = []
     self.maxNumCycles = 50
     self.convergencyPrecision = 0.0001
@@ -59,7 +61,10 @@ class HNN ():
 
   def cycle(self):
     output("in cycle", self)
-    pass
+    if self.network_type == NetworkType.HNN:
+      sums = self.layers[0].calculateWeightedSums()
+      newAxons = self.layers[0].calculateActivationSignmoid(sums,T=0.4)
+      return newAxons
 
   def start(self):
     output("started cycling", self)
@@ -68,19 +73,26 @@ class HNN ():
       if i > self.maxNumCycles:
         break
       else:
-        self.cycle()
+        newAxons = self.cycle()
         self.calculateEnergy()
-        self.isConverged()
+        if  self.isConverged(newAxons):
+          output("network converged", self)
+          break
         i += 1
 
-  def isConverged(self):
+  def isConverged(self,newAxons):
     output("checked for convergence",self,True)
+    result = [abs(a_i - b_i) for a_i, b_i in zip(newAxons, self.layers[0].axons)]
+    for i in result:
+      if i > self.convergencyPrecision:
+        self.layers[0].setAxons(newAxons)
+        return False
 
-  def calculateActivationSignmoid(self):
-    output("calculated sigmoid activation",self,True)
+    return True
 
-  def updateNeuronsOutput(self):
-    output("updated neurons axons",self,True)
+
+
+
 
   def updateWeights(self):
     output("updated weigths",self,True)

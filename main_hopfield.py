@@ -1,7 +1,8 @@
 import os
-import sys
+
 from hopfield.dhnn import HNN
 from service_functions import output, readCliqueInAdjMatrix
+
 
 __author__ = 'demidovs'
 

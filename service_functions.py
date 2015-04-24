@@ -1,3 +1,4 @@
+import os
 import random
 import re
 
@@ -31,6 +32,8 @@ def readCliqueInAdjMatrix(fileName):
   isEdge = re.compile('^e\s.*\s.*',re.IGNORECASE)
   isCliqueInfo = re.compile('^p\scol.*', re.IGNORECASE)
   adjMatrix = []
+  current_working_directory = os.getcwd()
+  fileName = os.path.join(current_working_directory,"data",fileName)
   with open(fileName, "r") as f:
     for line in f.readlines():
       if isCliqueInfo.match(line):

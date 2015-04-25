@@ -1,3 +1,4 @@
+from copy import copy
 import random
 from math import exp
 import sys
@@ -13,9 +14,10 @@ class TabuMachine():
 		self.__c = 0      #number of going into far spaces of solution
 		self.__C = 0      #limit for self.c
 		self.__beta = 0   #defines the limit for number of local iterations
+		#TODO: should the size of tabu be equal to the number of neurons
 		self.__l = 0      #defines the size of the tabu list
 		self.__smallPunishment = 10   #if there is no only one vertice to make a clique then punish via @link countTax
-		self.__alpha = 0.5           #coefficient to increase the punishment for vertices with very small edges with other
+		self.__alpha = 0.5       #coefficient to increase the punishment for vertices with very small edges with other
 		self._tabu_list = [] #defines the tabu list
 		self._size = 0   #number of neurons in the single layer
 		self.myOuts = []    #outputs of neurons
@@ -26,18 +28,22 @@ class TabuMachine():
 		self.globalMinimumState = []    #global minumim state S00
 		self.myA = 1
 		self.myB = 1
-		self.currentEnergy = sys.maxint
-		self.currentTax = sys.maxint
-		self.localMinimumEnergy = sys.maxint
-		self.globalMinimumEnergy = sys.maxint
+		self.currentEnergy = float("inf")
+		self.currentTax = float("inf")
+		self.localMinimumEnergy = float("inf")
+		self.globalMinimumEnergy = float("inf")
 
 	def setSize(self,size):
 		assert size > 0
 		self.size = size
+		self.__l = size
+
+	def incrementK(self):
+		self.__k += 1
 
 	def setC(self,C):
 		assert  C > 0
-		self.C = C
+		self.__C = C
 
 	def setCurrentEnergy(self,energy):
 		assert energy >= 0
@@ -50,9 +56,15 @@ class TabuMachine():
 	def getCurrentState(self):
 		return self.currentState
 
+	def changeCurrentState(self,indexToChange):
+		self.currentState[indexToChange] = 1 - self.currentState[indexToChange]
+
 	def initializeIns(self):
 		assert self.size > 0
-		self.currentState = [random.randint(0,1) for i in range(0,self.size)]
+		self.currentState = [random.randint(0,1) for i in range(self.size)]
+
+	def createTabuList(self):
+		self._tabu_list = [float("inf") for i in range(self.__l)]
 
 	def fillWeightMatrix(self,adjMatrix):
 		assert len(adjMatrix) == self.size
@@ -68,8 +80,8 @@ class TabuMachine():
 
 	def initZeroMatrix(self,rows,cols):
 		tmpMatrix = []
-		for i in range(0,rows):
-			tmp = [0 for j in range(0,cols)]
+		for i in range(rows):
+			tmp = [0 for j in range(cols)]
 			tmpMatrix.append(tmp)
 		return tmpMatrix
 
@@ -114,11 +126,91 @@ class TabuMachine():
 	def checkForEnergyTaxUpdate(self):
 		if self.currentEnergy < self.globalMinimumEnergy:
 			output("\t New global optimum registered: old value = {}, new value = {}"\
-				       .format(str(self.globalMinimumEnergy),str(self.currentEnergy)),isDebug=True)
+					 .format(str(self.globalMinimumEnergy),str(self.currentEnergy)),isDebug=True)
 			self.globalMinimumEnergy = self.currentEnergy
 			self.globalMinimumState = self.currentState
 		if self.currentEnergy < self.localMinimumEnergy:     #should we update global as well? Now I do it
 			output("\t New local optimum registered: old value = {}, new value = {}"\
-				       .format(str(self.localMinimumEnergy),str(self.currentEnergy)),isDebug=True)
+					 .format(str(self.localMinimumEnergy),str(self.currentEnergy)),isDebug=True)
 			self.localMinimumEnergy = self.currentEnergy
 			self.localMinumumState = self.localMinumumState
+
+	def countNeighbourhoodStates(self,state):
+		assert len(state) > 0
+		energies = [float("inf") for i in range (self.size)]
+		taxes = [float("inf") for i in range (self.size)]
+
+		for i in range (0,self.size):
+			newState = copy(state)
+			newState[i] = 1 - newState[i]
+			energies[i] = self.countEnergy(newState)
+			taxes[i] = self.countTax(newState)
+
+		return energies,taxes
+
+	def chooseBestNeighbour(self,energies,taxes):
+		nIndex = self.findAbsoluteBest(energies=energies,taxes=taxes)		#index of best neighbor
+		if (nIndex > 0):
+			return nIndex
+		else:
+			return self.findParetoFrontier(energies=energies,taxes=taxes)
+
+
+
+	def findAbsoluteBest(self,energies,taxes):
+		""" Check if there is the minimum for both criteria: the lowest energy and the lowest tax
+		:rtype : the index of the best minimum neighbour
+		"""
+		myBest = -1
+		minEnergy = min(energies)
+		minTax = min(taxes)
+		i = 0
+		for energy,tax in zip (energies,taxes):
+			if energy == minEnergy and tax == minTax:
+				myBest = i
+				break
+			i += 1
+		return myBest
+
+
+	def findParetoFrontier(self,energies,taxes):
+		mylist = sorted([[energies[i],taxes[i]] for i in range(len(energies))],reverse=True)	#find pareto frontier
+		p_front = [mylist[0]]
+		for pair in mylist[1:]:
+			if pair[1] >= p_front[-1][1]:
+				p_front.append(pair)
+		assert  len(p_front) > 0
+		nIndex = random.randint(0,self.size)
+		return nIndex
+
+	def moveNeuronToTabu(self,index):
+		assert self.check_tabu_list
+		self._tabu_list[index] = self.__k
+
+	def is_smtp_over(self):
+		"""
+			Check if we have any more iterations in this space
+			:rtype : boolean
+		"""
+		if self.__k > self.__beta*self.size:
+			return True
+		return False
+
+	def is_lmtp_over(self):
+		"""
+			Check if we have any more jumps in this space
+			:rtype : boolean
+		"""
+		if self.__c >= self.__C:
+			return True
+		return False
+
+	def get_oldest_neuron(self):
+		"""find the neuron in the tabu list who remains unchanged more than others
+		:rtype: index of that neuron"""
+		assert self.check_tabu_list
+		numIter = min(self._tabu_list)
+		return self._tabu_list.index(numIter)
+
+	def check_tabu_list(self):
+		return (len(self._tabu_list) > 0 and len(self._tabu_list) == self.__l)

@@ -4,11 +4,11 @@ import re
 
 __author__ = 'demidovs'
 import time
-def output (message,instance = None,isDebug = True):
+def output (message,instance = None,isDebug = True,tabsNum = 0):
   log = ""
   if instance is not None:
     log = "<{}>".format(instance)
-  print ( time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log,str(message)))
+  print ( time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log,str(('\t' * tabsNum) + message)))
 
 def makeIntMatrix (rows,cols):
   matrix = []

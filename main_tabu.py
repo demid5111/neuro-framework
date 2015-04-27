@@ -73,9 +73,9 @@ if __name__ == "__main__":
 		myTM.increment_k()
 		# myTM.increment_h()
 		if myTM.check_for_energy_tax_update():
-			myTM.increment_h()
-		else:
 			myTM.erase_h()
+		else:
+			myTM.increment_h()
 		if myTM.is_smtp_over():
 			if myTM.is_lmtp_over():
 				output("Global search is over. Get out best solution (global minimum) found so far", isDebug=True, tabsNum=1)
@@ -88,6 +88,9 @@ if __name__ == "__main__":
 				oldIndex = myTM.get_oldest_neuron()
 				myTM.changeCurrentState(bestNeighbour)
 				myTM.moveNeuronToTabu(bestNeighbour)
+				myTM.setCurrentEnergy(energies[bestNeighbour],isLocalMin=True)
+				myTM.setCurrentTax(taxes[bestNeighbour])
+				myTM.erase_h()
 		else:
 			output("\t Continue local search",isDebug=True,tabsNum=1)
 		i += 1

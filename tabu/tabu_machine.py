@@ -62,9 +62,11 @@ class TabuMachine():
 		assert C > 0
 		self.__C = C
 
-	def setCurrentEnergy(self,energy):
+	def setCurrentEnergy(self,energy,isLocalMin=False):
 		assert energy >= 0
 		self.currentEnergy = energy
+		if isLocalMin:
+			self.localMinimumEnergy = energy
 
 	def setCurrentTax(self,tax):
 		assert tax >= 0
@@ -190,6 +192,7 @@ class TabuMachine():
 				nIndex = self._find_pareto_frontier(energies=energies,taxes=taxes,rejected=rejected)    #always returns index
 
 			if self.is_tabu(nIndex):
+				print("!!!!!!!!!!!!!!!!IS TABU")
 				output(message="\t Neuron is in tabu. Need to check the aspiration criteria",isDebug=True)
 				tmpState = self.currentState
 				tmpState[nIndex] = 1 - tmpState[nIndex]
@@ -246,7 +249,7 @@ class TabuMachine():
 		assert  len(p_front) > 0
 		p_index = -1
 		while(True):
-			p_index = random.randint(0,self._size)
+			p_index = random.randint(0,len(p_front))
 			if p_index in rejected:
 				continue
 			else:

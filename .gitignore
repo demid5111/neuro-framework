@@ -1,2 +1,5 @@
 *.pyc
 .idea/*
+hopfield/*.pyc
+tabu/*.pic
+common_logic/*.pyc

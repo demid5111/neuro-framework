@@ -2,7 +2,7 @@ from copy import copy
 import random
 from math import exp
 
-from service_functions import output
+from service_functions import output, print_matrix
 
 
 __author__ = 'demid5111'
@@ -63,7 +63,10 @@ class TabuMachine():
 		self.__C = C
 
 	def setCurrentEnergy(self,energy,isLocalMin=False):
-		assert energy >= 0
+		try:
+			assert energy >= 0
+		except AssertionError:
+			output("Energy is negative, value = {}".format(energy),isDebug=True,tabsNum=0)
 		self.currentEnergy = energy
 		if isLocalMin:
 			self.localMinimumEnergy = energy
@@ -100,13 +103,16 @@ class TabuMachine():
 	def fillWeightMatrix(self,adjMatrix):
 		assert len(adjMatrix) == self._size
 		assert len(adjMatrix[0]) == self._size
-		self.print_matrix(adjMatrix)
+		output("Adjacency matrix:",isDebug=True)
+		print_matrix(adjMatrix)
 		# return
 		self.myWeights = self.initZeroMatrix(self._size,self._size)
 		for i in range(0,self._size):
 			for j in range(0,self._size):
 				#TODO: decide whether to use -2 * A as multiplier or not
-				self.myWeights[i][j] = -2*self.myA*(1-adjMatrix[i][j])*(1-self.kron(i,j))
+				self.myWeights[i][j] = -2*self.myA*(1 - adjMatrix[i][j])*(1-self.kron(i,j))
+		output("Weight matrix:",isDebug=True)
+		print_matrix(self.myWeights)
 
 	def kron(self,i,j):
 		return 1 if i == j else 0
@@ -120,6 +126,7 @@ class TabuMachine():
 
 	def countEnergy(self,state):
 		assert len(state) == self._size
+
 		tmp = 0
 		for i in range(0,self._size):
 			for j in range(0,self._size):
@@ -308,7 +315,3 @@ class TabuMachine():
 			return True
 		return False
 
-	def print_matrix(self,matrix):
-		for i in range(len(matrix)):
-			output( str(matrix[i]),isDebug=True)
-			# print('\n')

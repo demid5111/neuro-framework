@@ -50,4 +50,7 @@ def readCliqueInAdjMatrix(fileName):
 				adjMatrix[int(tmp[-1]) - 1][int(tmp[-2]) - 1] = 1
 	return adjMatrix
 
-
+def print_matrix(matrix):
+	for i in range(len(matrix)):
+		output( str(matrix[i]),isDebug=True)
+		# print('\n')

@@ -1,0 +1,33 @@
+c FILE:  c3.clq
+c
+c SOURCE: self-made
+c 
+c DESCRIPTION: it is a sample graph with a clique of 3
+c
+c 
+c G(n,p) graph
+c graph gen seed     : 74328432
+c number of vertices : 125
+c max number of edges: 20000
+c edge probability   : 0.900000
+c data structure     : dense
+c
+c           Graph Stats
+c number of vertices  : 125
+c nonisolated vertices: 125
+c number of edges     : 6963
+c edge density        : 0.898452
+c max degree          : 119
+c avg degree          : 111.41
+c min degree          : 102
+p col 6 10
+e 1 2
+e 1 3
+e 1 4
+e 1 5
+e 1 6
+e 2 3
+e 2 4
+e 3 4
+e 4 5
+e 5 6

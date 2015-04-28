@@ -12,10 +12,12 @@ if __name__ == "__main__":
 	###############################################
 
 	current_working_directory = os.getcwd()
-	myAdjMatrix = readCliqueInAdjMatrix("C125.9.clq")
+	# myAdjMatrix = readCliqueInAdjMatrix("C125.9.clq")
+	myAdjMatrix = readCliqueInAdjMatrix("sample6_10.clq")
 
 	myC = 3
-	TABU_SIZE = 10
+
+	TABU_SIZE = len(myAdjMatrix)/2
 	BETA = TABU_SIZE/len(myAdjMatrix)+1
 	###############################################
 	output(message="Starting tabu work",isDebug=True)

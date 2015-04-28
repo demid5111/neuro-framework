@@ -100,11 +100,13 @@ class TabuMachine():
 	def fillWeightMatrix(self,adjMatrix):
 		assert len(adjMatrix) == self._size
 		assert len(adjMatrix[0]) == self._size
+		self.print_matrix(adjMatrix)
+		# return
 		self.myWeights = self.initZeroMatrix(self._size,self._size)
 		for i in range(0,self._size):
 			for j in range(0,self._size):
 				#TODO: decide whether to use -2 * A as multiplier or not
-				self.myWeights[i][j] = abs(-2*self.myA*(1-adjMatrix[i][j])*(1-self.kron(i,j)))
+				self.myWeights[i][j] = -2*self.myA*(1-adjMatrix[i][j])*(1-self.kron(i,j))
 
 	def kron(self,i,j):
 		return 1 if i == j else 0
@@ -123,7 +125,7 @@ class TabuMachine():
 			for j in range(0,self._size):
 				tmp += self.myWeights[i][j]* state [i] * state [j]
 
-		return tmp - self.myB * sum(state)
+		return (-1/2) * tmp - self.myB * sum(state)
 
 	def countTax(self,state):
 		assert len(state) == self._size
@@ -305,3 +307,8 @@ class TabuMachine():
 		if newEnergy < self.currentEnergy:
 			return True
 		return False
+
+	def print_matrix(self,matrix):
+		for i in range(len(matrix)):
+			output( str(matrix[i]),isDebug=True)
+			# print('\n')

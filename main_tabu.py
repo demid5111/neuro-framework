@@ -84,6 +84,7 @@ if __name__ == "__main__":
 				output("Best energy: value = {}".format(myTM.get_global_minimum_energy()), isDebug=True)
 				output("Max clique size: value = {}"\
 					.format(myTM.get_clique_size(myTM.get_global_minimum_state())), isDebug=True)
+				output("The global minimum state: clique indices: " + str(myTM.get_best_clique()),isDebug=True)
 				break
 			else:
 				output("\t Local search is over. Need to move far away from here",isDebug=True,tabsNum=1)
@@ -93,6 +94,7 @@ if __name__ == "__main__":
 				myTM.setCurrentEnergy(energies[bestNeighbour],isLocalMin=True)
 				myTM.setCurrentTax(taxes[bestNeighbour])
 				myTM.erase_h()
+				myTM.increment_c()
 		else:
 			output("\t Continue local search",isDebug=True,tabsNum=1)
 		i += 1

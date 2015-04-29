@@ -201,7 +201,6 @@ class TabuMachine():
 				nIndex = self._find_pareto_frontier(energies=energies,taxes=taxes,rejected=rejected)    #always returns index
 
 			if self.is_tabu(nIndex):
-				print("!!!!!!!!!!!!!!!!IS TABU")
 				output(message="\t Neuron is in tabu. Need to check the aspiration criteria",isDebug=True)
 				tmpState = self.currentState
 				tmpState[nIndex] = 1 - tmpState[nIndex]
@@ -211,6 +210,7 @@ class TabuMachine():
 					rejected.append(nIndex)
 			else:
 				break
+		output("Neuron is found",isDebug=True)
 		return nIndex
 
 		# else:
@@ -258,12 +258,13 @@ class TabuMachine():
 		assert  len(p_front) > 0
 		p_index = -1
 		while(True):
-			p_index = random.randint(0,len(p_front))
+			p_index = random.randint(0,len(p_front)-1)
 			if p_index in rejected:
 				continue
 			else:
 				break
 		assert p_index != -1
+		assert p_front[p_index]
 		nIndex = p_front[p_index][2]
 		#TODO: check if bug is fixed: wrong collection of the index - not random!!
 		return nIndex
@@ -294,6 +295,8 @@ class TabuMachine():
 		"""find the neuron in the tabu list who remains unchanged more than others
 		:rtype: index of that neuron"""
 		assert self.check_tabu_list
+		if (float("inf") in self._tabu_list):
+			return self._tabu_list.index(float("inf"))
 		numIter = min(self._tabu_list)
 		return self._tabu_list.index(numIter)
 
@@ -311,7 +314,16 @@ class TabuMachine():
 
 	def aspiration_criteria_satisfied(self,state):
 		newEnergy = self.countEnergy(state)
-		if newEnergy < self.currentEnergy:
+		newTax = self.countTax(state=state)
+		output("Checking aspiration criteria: oldEnergy={}, current tax = {}; new energy = {}, new tax = {}"\
+					 				.format(self.currentEnergy,self.currentTax,newEnergy,newTax),isDebug=True,tabsNum=1)
+		if newEnergy < self.currentEnergy or newTax <= self.currentTax:
 			return True
 		return False
+
+	def increment_c(self):
+		self.__c += 1
+	
+	def get_best_clique(self):
+		return [i+1 for i in range(self._size) if self._globalMinimumState[i] == 1]
 

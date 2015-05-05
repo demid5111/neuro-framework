@@ -7,10 +7,11 @@ import time
 
 
 def output(message, instance=None, isDebug=True, tabsNum=0):
-	log = ""
-	if instance is not None:
-		log = "<{}>".format(instance)
-	print(time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log, str(('\t' * tabsNum) + message)))
+	if not isDebug:
+		log = ""
+		if instance is not None:
+			log = "<{}>".format(instance)
+		print(time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log, str(('\t' * tabsNum) + message)))
 
 
 def makeIntMatrix(rows, cols):
@@ -54,3 +55,13 @@ def print_matrix(matrix):
 	for i in range(len(matrix)):
 		output( str(matrix[i]),isDebug=True)
 		# print('\n')
+
+def check_clique(vertices, adjMatrix):
+	left = 0
+	for i in range(len(vertices)):
+		for j in range(len(vertices)):
+			if vertices[i] != vertices[j]:
+				if adjMatrix[vertices[i]][vertices[j]] == 0:
+					left += 1
+
+	return left

@@ -6,12 +6,15 @@ __author__ = 'demidovs'
 import time
 
 
-def output(message, instance=None, isDebug=True, tabsNum=0):
+def output(message, instance=None, isDebug=True, tabsNum=0,newLine=True):
 	if not isDebug:
 		log = ""
 		if instance is not None:
 			log = "<{}>".format(instance)
-		print(time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log, str(('\t' * tabsNum) + message)))
+		if not newLine:
+			print(message,end="")
+		else:
+			print(time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log, str(('\t' * tabsNum) + message)))
 
 
 def makeIntMatrix(rows, cols):
@@ -60,8 +63,10 @@ def check_clique(vertices, adjMatrix):
 	left = 0
 	for i in range(len(vertices)):
 		for j in range(len(vertices)):
+			if i <= j:
+				continue
 			if vertices[i] != vertices[j]:
-				if adjMatrix[vertices[i]][vertices[j]] == 0:
+				if adjMatrix[vertices[i]-1][vertices[j]-1] == 0:
 					left += 1
 
 	return left

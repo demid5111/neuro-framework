@@ -2,7 +2,7 @@ from copy import copy
 import random
 from math import exp
 import warnings
-
+from operator import itemgetter
 from service_functions import output, print_matrix
 
 
@@ -17,7 +17,7 @@ class TabuMachine():
 		self.__beta = 0   # defines the limit for number of local iterations
 		#TODO: should the size of tabu be equal to the number of neurons
 		self.__l = 2      # defines the size of the tabu list
-		self.__smallPunishment = 10   # if there is no only one vertice to make a clique then punish via @link countTax
+		self.__smallPunishment = 10   # if there is no only one vertice to make a clique then punish via @link count_tax
 		self.__alpha = 0.5       # coefficient to increase the punishment for vertices with very small edges with other
 		self._tabu_list = [] # defines the tabu list
 		self._size = 0   # number of neurons in the single layer
@@ -32,6 +32,7 @@ class TabuMachine():
 		self.currentEnergy = float("inf")
 		self.currentTax = float("inf")
 		self.localMinimumEnergy = float("inf")
+		self.localMinimumTax = float("inf")
 		self._globalMinimumEnergy = float("inf")
 
 
@@ -66,7 +67,7 @@ class TabuMachine():
 		assert C > 0
 		self.__C = C
 
-	def setCurrentEnergy(self,energy,isLocalMin=False):
+	def set_energy(self,energy,isLocalMin=False):
 		try:
 			assert self.currentEnergy >= 0
 		except AssertionError:
@@ -82,7 +83,7 @@ class TabuMachine():
 		except AssertionError:
 			output("Energy is negative, value = {}".format(self.currentEnergy),isDebug=True,tabsNum=0)
 
-	def setCurrentTax(self,tax):
+	def set_tax(self,tax):
 		assert tax >= 0
 		self.currentTax = tax
 
@@ -114,11 +115,12 @@ class TabuMachine():
 	def changeCurrentState(self,indexToChange):
 		self.currentState[indexToChange] = 1 - self.currentState[indexToChange]
 
-	def initializeIns(self):
+	def initialize_state(self):
 		assert self._size > 0
 		self.currentState = [random.randint(0,1) for i in range(self._size)]
 
-	def createTabuList(self):
+	def initialize_tabu_list(self):
+		assert self._size > 0
 		self._tabu_list = [float("inf") for i in range(self._size)]
 
 	def fillWeightMatrix(self,adjMatrix):
@@ -145,37 +147,38 @@ class TabuMachine():
 			tmpMatrix.append(tmp)
 		return tmpMatrix
 
-	def countEnergy(self,state):
+	def count_energy(self,state):
 		assert len(state) == self._size
 
 		tmp = 0
 		for i in range(0,self._size):
 			for j in range(0,self._size):
 				tmp += self.myWeights[i][j]* state [i] * state [j]
-
 		return (-1/2) * tmp - self.myB * sum(state)
 
-	def countTax(self,state):
+	def count_tax(self,state):
 		assert len(state) == self._size
-		actives = []
+		actives = []		#contains indices of elements
 		taxes = []
-		for i in range(0, self._size):
+		for i in range(self._size):
 			if state[i] == 1:
 				actives.append(i)
 
-		for i in range(0,self._size):
+		for i in actives:
 			tax = 0
-			for j in range(0,len(actives)):
-				if self.myWeights[i][j] == 0:
+			for j in actives:
+				if i == j:
+					continue
+				if self.myWeights[i][j] != 0:
 					tax += 1
 			if tax == 0:
 				continue
 			else:
-				taxes.append(self.countTaxForNeuron(tax))
+				taxes.append(self.count_tax_neuron(tax))
 			tax = 0
 		return sum(taxes)
 
-	def countTaxForNeuron(self,quantity):
+	def count_tax_neuron(self,quantity):
 		assert quantity > 0
 		if quantity == 1:
 			return self.__smallPunishment
@@ -186,7 +189,7 @@ class TabuMachine():
 
 	def check_for_energy_tax_update(self):
 		isChanged = False
-		if self.currentEnergy < self._globalMinimumEnergy:
+		if self.currentEnergy < self._globalMinimumEnergy and self.currentTax == 0:
 			output("\t New global optimum registered: old value = {}, new value = {}"\
 					 .format(str(self._globalMinimumEnergy),str(self.currentEnergy)),isDebug=False)
 			self._globalMinimumEnergy = self.currentEnergy
@@ -197,6 +200,7 @@ class TabuMachine():
 					 .format(str(self.localMinimumEnergy),str(self.currentEnergy)),isDebug=False)
 			self.localMinimumEnergy = self.currentEnergy
 			self.localMinimumState = self.localMinimumState
+			self.localMinimumTax = self.currentTax
 			isChanged = True
 		return isChanged
 
@@ -209,8 +213,8 @@ class TabuMachine():
 		for i in range (0,self._size):
 			newState = copy(state)
 			newState[i] = 1 - newState[i]
-			energies[i] = self.countEnergy(newState)
-			taxes[i] = self.countTax(newState)
+			energies[i] = self.count_energy(newState)
+			taxes[i] = self.count_tax(newState)
 
 		return energies,taxes
 
@@ -256,21 +260,30 @@ class TabuMachine():
 		# output("Neuron is found",isDebug=True)
 		return nIndex
 
-		# else:
-		# 	return
-		#
-		# #TODO: make the list of indexes filled correctly
-		# myIndexes = []
-		# for i in myIndexes:
-		# 	if myTM.is_tabu(i):
-		# 		output(message="\t Neuron is in tabu. Need to check the aspiration criteria",isDebug=True)
-		# 		tmpState = self.currentState
-		# 		tmpState[i] = 1 - tmpState[i]
-		# 		if self.aspiration_criteria_satisfied(tmpState):
-		# 			return i
-		# 	else:
-		# 		return i
+	def choose_best_neighbour_simple(self):
+		rejected = set([])     #list of prohibited indexes which are rejected because of tabu and energy
+		nIndex = -1
+		while(True):
+			nIndex = self._find_min_diff(rejected=rejected)		#index of best neighbor
 
+			if self.is_tabu(nIndex):
+				output(message="\t Neuron is in tabu. Need to check the aspiration criteria",isDebug=True)
+				if self.aspiration_criteria_satisfied(nIndex):
+					break
+				else:
+					rejected.add(nIndex)
+			else:
+				break
+		# output("Neuron is found",isDebug=True)
+		return nIndex
+
+	def _find_min_diff (self, rejected):
+		# TODO: optimize search for a minimum
+		indexes = [i for i in range(self._size) if i not in rejected]
+		vector = copy(self._diffEi)
+		for i in sorted(rejected,reverse=True):
+			del vector[i]
+		return min(zip(indexes,vector), key=itemgetter(1))[0]
 
 	def _find_absolute_best(self,rejected):
 		""" Check if there is the minimum for both criteria: the lowest energy and the lowest tax
@@ -321,7 +334,7 @@ class TabuMachine():
 			Check if we have any more iterations in this space
 			:rtype : boolean
 		"""
-		if self.__h >= self.__beta*self._size:
+		if self.__h > self.__beta*self._size:
 			return True
 		return False
 
@@ -356,11 +369,14 @@ class TabuMachine():
 		return False
 
 	def aspiration_criteria_satisfied(self,index):
-		newEnergy = self.currentEnergy + self._diffEi[index]#self.countEnergy(state)
-		newTax = self._taxes[index]#self.countTax(state=state)
+		newEnergy = self.currentEnergy + self._diffEi[index]#self.count_energy(state)
+		# newTax = self._taxes[index]#self.count_tax(state=state)
+		tmpState = copy(self.currentState)
+		tmpState[index] = 1 - tmpState[index]
+		newTax = self.count_tax(state=tmpState)
 		output("Checking aspiration criteria: oldEnergy={}, current tax = {}; new energy = {}, new tax = {}"\
 					 				.format(self.currentEnergy,self.currentTax,newEnergy,newTax),isDebug=True,tabsNum=1)
-		if newEnergy < self.currentEnergy or newTax < self.currentTax:
+		if newEnergy < self.localMinimumEnergy or newTax < self.localMinimumTax:
 			return True
 		return False
 
@@ -373,6 +389,8 @@ class TabuMachine():
 	def deprecation(self,message):
 		warnings.warn(message,DeprecationWarning)
 
-	def count_taxes(self,state):
+	def count_taxes(self):
 		for i in range (self._size):
-			self._taxes[i] = self.countTax(state=state)
+			tmpState = copy(self.currentState)
+			tmpState[i] = 1 - tmpState[i]
+			self._taxes[i] = self.count_tax(state=tmpState)

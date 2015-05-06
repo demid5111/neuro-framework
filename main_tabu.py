@@ -10,15 +10,19 @@ if __name__ == "__main__":
 	###############################################
 	# All necessary staff for correct workflow
 	###############################################
+	output(message="Pre-processing: reading clique",isDebug=False)
+	# fileName = "C125.9.clq"
+	fileName = "sample6_10.clq"
+	i = 0
+	i += 1
+	output(message="Step {}. Read clique from file {}".format(str(i),fileName),isDebug=True)
+	myAdjMatrix = readCliqueInAdjMatrix(fileName)
+	# print(myAdjMatrix)
+	myC = 5
 
-	current_working_directory = os.getcwd()
-	myAdjMatrix = readCliqueInAdjMatrix("C125.9.clq")
-	# myAdjMatrix = readCliqueInAdjMatrix("sample6_10.clq")
-
-	myC = 3
-
-	TABU_SIZE = len(myAdjMatrix)/2
-	BETA = TABU_SIZE/len(myAdjMatrix)+1
+	TABU_SIZE = int(len(myAdjMatrix)/2)
+	BETA = TABU_SIZE/len(myAdjMatrix)+2
+	i += 1
 	###############################################
 	output(message="Starting tabu work",isDebug=True)
 	i = 0
@@ -29,20 +33,19 @@ if __name__ == "__main__":
 	myTM.setSize(len(myAdjMatrix))
 	myTM.set_tabu_size(TABU_SIZE)
 	myTM.set_beta(BETA)
-	myTM.initializeIns()
-	myTM.createTabuList()
+	myTM.initialize_tabu_list()
 	i += 1
 	output(message="Step {}. Randomly initialize the neurons states".format(str(i)),isDebug=True)
-
+	myTM.initialize_state()
 	i += 1
 	output(message="Step {}. Fill weight matrix".format(str(i)),isDebug=True)
 	myTM.fillWeightMatrix(myAdjMatrix)
 	i += 1
 	output(message="Step {}. Count current energy and tax".format(str(i)),isDebug=True)
-	energy = myTM.countEnergy(myTM.getCurrentState())
-	tax = myTM.countTax(myTM.getCurrentState())
-	myTM.setCurrentEnergy(energy)
-	myTM.setCurrentTax(tax)
+	energy = myTM.count_energy(myTM.getCurrentState())
+	tax = myTM.count_tax(myTM.getCurrentState())
+	myTM.set_energy(energy)
+	myTM.set_tax(tax)
 	i += 1
 	output(message="Step {}. Update energies if needed".format(str(i)),isDebug=True)
 	myTM.check_for_energy_tax_update()
@@ -50,7 +53,7 @@ if __name__ == "__main__":
 	output(message="Step {}. Count energies of the neighbours states".format(str(i)),isDebug=True)
 	# energies, taxes = myTM.countNeighbourhoodStates(myTM.getCurrentState())
 	myTM.count_energy_diff_states(isInitial=True)
-	myTM.count_taxes(myTM.getCurrentState())
+	# myTM.count_taxes()
 	i += 1
 	j = i
 	output(message="Start cycling the TM to find the best solution")
@@ -58,7 +61,8 @@ if __name__ == "__main__":
 		i = j
 		output(message="Step {}. Choose neighbour to move to".format(str(i)),isDebug=True,tabsNum=1)
 		# energies, taxes = myTM.countNeighbourhoodStates(myTM.getCurrentState())
-		bestNeighbour = myTM.choose_best_neighbour()#energies=energies,taxes=taxes)
+		# bestNeighbour = myTM.choose_best_neighbour()#energies=energies,taxes=taxes)
+		bestNeighbour = myTM.choose_best_neighbour_simple()#energies=energies,taxes=taxes)
 		# TODO: add check if this neuron is in tabu and check aspiration criterion for him
 		output(message="\tBest neighbour to move to is: energy={}, tax={}"\
 			.format(myTM._diffEi[bestNeighbour],myTM._taxes[bestNeighbour]),isDebug=True,tabsNum=1)
@@ -69,19 +73,18 @@ if __name__ == "__main__":
 		myTM.changeCurrentState(bestNeighbour)
 		myTM.moveNeuronToTabu(bestNeighbour)
 		myTM.update_energy(index=bestNeighbour)
-		myTM.update_tax(index=bestNeighbour)
+		myTM.set_tax(myTM.count_tax(myTM.getCurrentState()))
 		i += 1
 
 		output(message="Step {}. Update neighbours energies and taxes"\
 			.format(str(i)), isDebug=True,tabsNum=1)
 		myTM.count_energy_diff_states(bestNeighbour)
-		myTM.count_taxes(myTM.getCurrentState())
+		# myTM.count_taxes()
 		i += 1
 
 		output(message="Step {}. Update k,c, Update energies. Check if smtp either lmtp to continue "\
 			.format(str(i)), isDebug=True,tabsNum=1)
 		myTM.increment_k()
-		# myTM.increment_h()
 		if myTM.check_for_energy_tax_update():
 			myTM.erase_h()
 		else:
@@ -103,9 +106,16 @@ if __name__ == "__main__":
 				myTM.changeCurrentState(bestNeighbour)
 				myTM.moveNeuronToTabu(bestNeighbour)
 				myTM.update_energy(bestNeighbour,isLocalMin=True)
-				myTM.update_tax(bestNeighbour)
+				# myTM.update_tax(bestNeighbour)
+				myTM.set_tax(myTM.count_tax(myTM.getCurrentState()))
 				myTM.erase_h()
 				myTM.increment_c()
+				i += 1
+				output(message="Step {}. Update neighbours energies and taxes"\
+					.format(str(i)), isDebug=True,tabsNum=1)
+				myTM.count_energy_diff_states(bestNeighbour)
+				# myTM.count_taxes()
+				i += 1
 		else:
 			output("\t Continue local search",isDebug=True,tabsNum=1)
 		i += 1

@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 import threading
+import time
 
 import pika
 
 from constants import Constants
 
 GLOBAL_STEP_COUNTER = 0
-
+isAll = False
 def receive_message (ch, method, properties, body):
 	print "[x] {}".format(body)
 
@@ -41,6 +42,8 @@ def receive_messages(channel,queue_name):
 	channel.basic_consume(receive_message, queue=queue_name, no_ack=False)
 
 	channel.start_consuming()
+	global isAll
+	isAll = True
 
 def start_listener(ch,queue):
 	t_msg = threading.Thread(target=receive_messages,args=[ch,queue])
@@ -63,7 +66,15 @@ if __name__ == "__main__":
 
 	print "\nI'm free to work hard..."
 
-	# send_message(channel=channel,message="Begin initializing")
+	# while not isAll:
+	# 	print "wait"
+	# 	if not isAll:
+	# 		continue
+	# 	else:
+	# 		break
+	time.sleep(3)
+	send_message(channel=channel,message="Begin initializing")
+	send_message(channel=channel,message="Begin initializing2")
 	#
 	# print "[*] Waiting for messages..."
 

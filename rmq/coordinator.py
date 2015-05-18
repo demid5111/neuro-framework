@@ -1,35 +1,51 @@
 #!/usr/bin/env python
+import threading
+
 import pika
 
-from constants import fanoutExchangeFromAdmin, directExchangeToAdmin, routing_key_to_admin, routing_key_from_admin
+from constants import Constants
 
+GLOBAL_STEP_COUNTER = 0
 
 def receive_message (ch, method, properties, body):
 	print "[x] {}".format(body)
 
 def send_message (channel,message):
-
-
-	channel.exchange_declare(exchange=fanoutExchangeFromAdmin,
+	channel.exchange_declare(exchange=Constants.fanoutExchangeFromAdmin,
 													 type='fanout')
-	print "[*] Sending Task:"
-	print message
+	print "[*] Sending Task: " + message
 
-	channel.basic_publish(exchange=fanoutExchangeFromAdmin,
-												routing_key=routing_key_from_admin,
+	# global GLOBAL_STEP_COUNTER
+	# if GLOBAL_STEP_COUNTER == 0:
+	# 	print "Step {}. Calculate weights myself".format(GLOBAL_STEP_COUNTER)
+	# elif GLOBAL_STEP_COUNTER == 1:
+	# 	print "Step {}. Slice weights matrix".format(GLOBAL_STEP_COUNTER)
+
+	channel.basic_publish(exchange=Constants.fanoutExchangeFromAdmin,
+												routing_key=Constants.routing_key_from_admin,
 												properties=pika.BasicProperties(type="task", delivery_mode=2),
 												body = message)
 
-def begin_listen(channel,queue_name):
+def receive_messages(channel,queue_name):
 	print "[*] Waiting for messages..."
+	# connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
+	# channel = connection.channel()
+	#
+	# result = channel.queue_declare(exclusive=True, durable=True)
+	# queue_name = result.method.queue
 
-	channel.exchange_declare(exchange=directExchangeToAdmin,
+	channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
 													 type='direct')
-	channel.queue_bind(exchange=directExchangeToAdmin, queue=queue_name,routing_key=routing_key_to_admin)
+	channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=queue_name,routing_key=Constants.routing_key_to_admin)
 
 	channel.basic_consume(receive_message, queue=queue_name, no_ack=False)
 
 	channel.start_consuming()
+
+def start_listener(ch,queue):
+	t_msg = threading.Thread(target=receive_messages,args=[ch,queue])
+	t_msg.start()
+	t_msg.join(0)
 
 if __name__ == "__main__":
 	myMessage = "Hello, World! I am admin!"
@@ -42,8 +58,22 @@ if __name__ == "__main__":
 
 
 	send_message(channel=channel,message=myMessage)
+	start_listener(ch=channel,queue=queue_name)
+	# start_listener()
 
-	begin_listen(channel=channel,queue_name=queue_name)
+	print "\nI'm free to work hard..."
+
+	# send_message(channel=channel,message="Begin initializing")
+	#
+	# print "[*] Waiting for messages..."
 
 
+	# channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
+	# 												 type='direct')
+	# channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=queue_name,routing_key=Constants.routing_key_to_admin)
+	#
+	# channel.basic_consume(receive_message, queue=queue_name, no_ack=False)
+	#
 	# channel.start_consuming()
+
+	# receive_messages(channel=channel,queue_name=queue_name)

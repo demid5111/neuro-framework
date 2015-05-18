@@ -1,60 +1,49 @@
-__author__ = 'Administrator'
-
-
+#!/usr/bin/env python
 import pika
-import sys
-from subprocess import call
-import os
 
-def close_connection():
-	connection.close()
-
-def create_sub_tm(quantity):
-	for i in range(quantity):
-		call(["C:\Python27\python.exe", os.path.join(os.path.dirname(os.path.realpath(__file__)),"SubTabuMachine.py")],shell=True)
-
-connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='localhost'))
-channel = connection.channel()
-
-channel.exchange_declare(exchange='logs',
-                         type='fanout')
+from constants import fanoutExchangeFromAdmin, directExchangeToAdmin, routing_key_to_admin, routing_key_from_admin
 
 
-result = channel.queue_declare(exclusive=True)
-queue_name = result.method.queue
+def receive_message (ch, method, properties, body):
+	print "[x] {}".format(body)
 
-channel.queue_bind(exchange='logs',
-                   queue=queue_name)
-
-print ' [*] Waiting for logs. To exit press CTRL+C'
-
-def callback(ch, method, properties, body):
-    print "main [x] %r" % (body,)
-
-channel.basic_consume(callback,
-                      queue=queue_name,
-                      no_ack=True)
-# message = ' '.join(sys.argv[1:]) or "info: Hello World!"
-# channel.basic_publish(exchange='logs',
-#                       routing_key='',
-#                       body=message)
-# print " [x] Sent %r" % (message,)
-# message = ' '.join(sys.argv[1:]) or "info: Hello World2!"
-# channel.basic_publish(exchange='logs',
-#                       routing_key='',
-#                       body=message)
-# print " [x] Sent %r" % (message,)
-create_sub_tm(quantity=3)
-channel.start_consuming()
+def send_message (channel,message):
 
 
-# connection = pika.BlockingConnection(pika.ConnectionParameters(
-#         host='localhost'))
-# channel = connection.channel()
-#
-# channel.exchange_declare(exchange='logs',
-#                          type='fanout')
+	channel.exchange_declare(exchange=fanoutExchangeFromAdmin,
+													 type='fanout')
+	print "[*] Sending Task:"
+	print message
+
+	channel.basic_publish(exchange=fanoutExchangeFromAdmin,
+												routing_key=routing_key_from_admin,
+												properties=pika.BasicProperties(type="task", delivery_mode=2),
+												body = message)
+
+def begin_listen(channel,queue_name):
+	print "[*] Waiting for messages..."
+
+	channel.exchange_declare(exchange=directExchangeToAdmin,
+													 type='direct')
+	channel.queue_bind(exchange=directExchangeToAdmin, queue=queue_name,routing_key=routing_key_to_admin)
+
+	channel.basic_consume(receive_message, queue=queue_name, no_ack=False)
+
+	channel.start_consuming()
+
+if __name__ == "__main__":
+	myMessage = "Hello, World! I am admin!"
+
+	connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
+	channel = connection.channel()
+
+	result = channel.queue_declare(exclusive=True, durable=True)
+	queue_name = result.method.queue
 
 
-# connection.close()
+	send_message(channel=channel,message=myMessage)
+
+	begin_listen(channel=channel,queue_name=queue_name)
+
+
+	# channel.start_consuming()

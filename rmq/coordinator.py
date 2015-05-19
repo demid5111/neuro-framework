@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os
+from subprocess import call
 import threading
 import time
 
@@ -8,9 +10,10 @@ from constants import Constants, Message, Level
 
 
 class Coordinator():
-	def __init__(self):
+	def __init__(self, NUMBER=None):
 		self.GLOBAL_STEP_COUNTER = 0
 		self.GLOBAL_MEMBERS_COUNTER = 0
+
 
 
 		self.connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
@@ -23,7 +26,9 @@ class Coordinator():
 		self.send_message(message=myMessage)
 		self.start_listener()
 
-		print "\nI'm free to work hard..."
+		print "\nNow create as much machines as needed"
+
+		self.create_machines(number=NUMBER)
 
 		time.sleep(3)		#to make sure everything is initialized correctly
 
@@ -72,10 +77,27 @@ class Coordinator():
 
 
 	def start_listener(self):
-		t_msg = threading.Thread(target=self.receive_messages)
-		t_msg.start()
-		t_msg.join(0)
+		self.receiver_thread = threading.Thread(target=self.receive_messages)
+		self.receiver_thread.start()
+		self.receiver_thread.join(0)
+
+	def create_machines(self, number):
+		dir = os.path.dirname(os.path.realpath(__file__))
+		for i in range(number):
+			call("start cmd /K C:\Python27\python.exe sub_tm.py {}".format(i+1),cwd=dir,shell=True)
+
+	def kill_machines(self,me_also=False):
+		self.send_message(message=Message.kill_everyone)
+		if me_also:
+			os._exit(1)
+
+
+
 
 if __name__ == "__main__":
 
-	myCoordinator = Coordinator()
+	myCoordinator = Coordinator(3)
+
+	time.sleep(3)
+
+	myCoordinator.kill_machines(me_also=True)

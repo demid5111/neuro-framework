@@ -24,6 +24,7 @@ class Message():
 	find_best_neighbour = "find_best_neighbour"
 	report_best_neighbour = "report_best_neigbour"
 	initializing = "initializing"
+	kill_everyone = "kill_everyone"
 	new_member = "new_member"
 	new_id = "new_id"
 	def __init__(self):

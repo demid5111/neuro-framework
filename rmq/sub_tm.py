@@ -1,11 +1,13 @@
 #!/usr/bin/env python
+import sys
+
 import pika
 
 from constants import Constants, Message
 
 
 class SubTM():
-	def __init__(self):
+	def __init__(self, number=None):
 		self.ID = -1
 		self.routing_key = '.'.join([str(self.ID),"report","update_energy"])
 		self.connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
@@ -14,7 +16,12 @@ class SubTM():
 		self.result = self.channel.queue_declare(exclusive=True, durable=True)
 		self.queue_name = self.result.method.queue
 
-		self.send_message(message=Message.new_member,routing_key=Message.new_member)
+		if number:
+			self.ID = number
+			self.send_message(message="I am now enumerated. So, check the connection with my routing_key",
+													routing_key=self.make_routing_key(" ", "info"))
+		else:
+			self.send_message(message=Message.new_member,routing_key=Message.new_member)
 
 
 		self.begin_listen(queue_name=self.queue_name)
@@ -33,6 +40,9 @@ class SubTM():
 				self.send_message(message="I am now enumerated. So, check the connection with my routing_key",
 													routing_key=self.make_routing_key(" ", "info"))
 			return
+		elif Message.kill_everyone in body:
+			print "Bye!"
+			sys.exit(0)
 		else:
 			self.send_message(message="Got it! TODO: " + body,routing_key=Message.initializing)
 
@@ -64,15 +74,5 @@ class SubTM():
 	def make_routing_key(self,type,level="report"):
 		return '.'.join([str(self.ID),level,type])
 if __name__ == "__main__":
-	# connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-	# channel = connection.channel()
-	#
-	# result = channel.queue_declare(exclusive=True, durable=True)
-	# queue_name = result.method.queue
-	#
-	# send_message(channel=channel,message=Message.new_member)
-	#
-	#
-	# begin_listen(channel=channel,queue_name=queue_name)
 
-	myTM = SubTM()
+	myTM = SubTM(sys.argv[1])

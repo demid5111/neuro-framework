@@ -7,100 +7,75 @@ import pika
 from constants import Constants, Message, Level
 
 
-GLOBAL_STEP_COUNTER = 0
-GLOBAL_MEMBERS_COUNTER = 0
-isAll = False
-def receive_message (ch, method, properties, body):
-	global  GLOBAL_MEMBERS_COUNTER
-	if method.routing_key == Message.new_member:
-		# GLOBAL_MEMBERS_COUNTER = len(ch.consumer_tags)
-		GLOBAL_MEMBERS_COUNTER += 1
-		print "We have new member. Now we are: {}".format(GLOBAL_MEMBERS_COUNTER)
+class Coordinator():
+	def __init__(self):
+		self.GLOBAL_STEP_COUNTER = 0
+		self.GLOBAL_MEMBERS_COUNTER = 0
 
-		send_message(channel=ch,message=' '.join([Message.new_id,str(GLOBAL_MEMBERS_COUNTER)]))
 
-	elif Level.info in method.routing_key:
-		print "Nice to see you, Number {}!".format(method.routing_key.split('.')[0])
-	else:
-		print "[x] {}".format(body)
+		self.connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
+		self.channel = self.connection.channel()
 
-def send_message (channel,message):
-	channel.exchange_declare(exchange=Constants.fanoutExchangeFromAdmin,
-													 type='fanout')
-	print "[*] Sending Task: " + message
+		self.result = self.channel.queue_declare(exclusive=True, durable=True)
+		self.queue_name = self.result.method.queue
 
-	# global GLOBAL_STEP_COUNTER
-	# if GLOBAL_STEP_COUNTER == 0:
-	# 	print "Step {}. Calculate weights myself".format(GLOBAL_STEP_COUNTER)
-	# elif GLOBAL_STEP_COUNTER == 1:
-	# 	print "Step {}. Slice weights matrix".format(GLOBAL_STEP_COUNTER)
+		myMessage = "Hello, World! I am admin!"
+		self.send_message(message=myMessage)
+		self.start_listener()
 
-	channel.basic_publish(exchange=Constants.fanoutExchangeFromAdmin,
-												routing_key=Constants.routing_key_from_admin,
-												properties=pika.BasicProperties(type="task", delivery_mode=2),
-												body = message)
+		print "\nI'm free to work hard..."
 
-def receive_messages(channel,queue_name):
-	print "[*] Waiting for messages..."
-	# connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-	# channel = connection.channel()
-	#
-	# result = channel.queue_declare(exclusive=True, durable=True)
-	# queue_name = result.method.queue
+		time.sleep(3)		#to make sure everything is initialized correctly
 
-	channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
-													 type='topic')
-	channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=queue_name,routing_key=Constants.key_all_messages)
 
-	channel.basic_consume(receive_message, queue=queue_name, no_ack=False)
+	def receive_message (self,ch, method, properties, body):
 
-	channel.start_consuming()
-	global isAll
-	isAll = True
+		if method.routing_key == Message.new_member:
+			# GLOBAL_MEMBERS_COUNTER = len(ch.consumer_tags)
+			self.GLOBAL_MEMBERS_COUNTER += 1
+			print "We have new member. Now we are: {}".format(self.GLOBAL_MEMBERS_COUNTER)
 
-def start_listener(ch,queue):
-	t_msg = threading.Thread(target=receive_messages,args=[ch,queue])
-	t_msg.start()
-	t_msg.join(0)
+			self.send_message(message=' '.join([Message.new_id,str(self.GLOBAL_MEMBERS_COUNTER)]))
+
+		elif Level.info in method.routing_key:
+			print "Nice to see you, Number {}!".format(method.routing_key.split('.')[0])
+		else:
+			print "[x] {}".format(body)
+
+
+	def send_message (self,message):
+		self.channel.exchange_declare(exchange=Constants.fanoutExchangeFromAdmin,
+														 type='fanout')
+		print "[*] Sending Task: " + message
+
+		# global GLOBAL_STEP_COUNTER
+		# if GLOBAL_STEP_COUNTER == 0:
+		# 	print "Step {}. Calculate weights myself".format(GLOBAL_STEP_COUNTER)
+		# elif GLOBAL_STEP_COUNTER == 1:
+		# 	print "Step {}. Slice weights matrix".format(GLOBAL_STEP_COUNTER)
+
+		self.channel.basic_publish(exchange=Constants.fanoutExchangeFromAdmin,
+													routing_key=Constants.routing_key_from_admin,
+													properties=pika.BasicProperties(type="task", delivery_mode=2),
+													body = message)
+
+	def receive_messages(self):
+		print "[*] Waiting for messages..."
+
+		self.channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
+														 type='topic')
+		self.channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=self.queue_name,routing_key=Constants.key_all_messages)
+
+		self.channel.basic_consume(self.receive_message, queue=self.queue_name, no_ack=False)
+
+		self.channel.start_consuming()
+
+
+	def start_listener(self):
+		t_msg = threading.Thread(target=self.receive_messages)
+		t_msg.start()
+		t_msg.join(0)
 
 if __name__ == "__main__":
-	myMessage = "Hello, World! I am admin!"
 
-	connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-	channel = connection.channel()
-
-	result = channel.queue_declare(exclusive=True, durable=True)
-	queue_name = result.method.queue
-
-
-	send_message(channel=channel,message=myMessage)
-	start_listener(ch=channel,queue=queue_name)
-	# start_listener()
-
-	print "\nI'm free to work hard..."
-
-	# while not isAll:
-	# 	print "wait"
-	# 	if not isAll:
-	# 		continue
-	# 	else:
-	# 		break
-	time.sleep(3)
-	# send_message(channel=channel,message="Begin initializing")
-	# send_message(channel=channel,message="Begin initializing2")
-	# send_message(channel=channel,message="Begin initializing2")
-	# send_message(channel=channel,message="Begin initializing2")
-	# send_message(channel=channel,message="Begin initializing2")
-	#
-	# print "[*] Waiting for messages..."
-
-
-	# channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
-	# 												 type='direct')
-	# channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=queue_name,routing_key=Constants.routing_key_to_admin)
-	#
-	# channel.basic_consume(receive_message, queue=queue_name, no_ack=False)
-	#
-	# channel.start_consuming()
-
-	# receive_messages(channel=channel,queue_name=queue_name)
+	myCoordinator = Coordinator()

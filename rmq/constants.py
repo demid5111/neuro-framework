@@ -22,6 +22,7 @@ class Message():
 	calculate_punishment = "calculate_punishment"
 	find_best_neighbour = "find_best_neighbour"
 	report_best_neighbour = "report_best_neigbour"
-
+	new_member = "new_member"
+	new_id = "new_id"
 	def __init__(self):
 		pass

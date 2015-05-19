@@ -4,11 +4,20 @@ import time
 
 import pika
 
-from constants import Constants
+from constants import Constants, Message
+
 
 GLOBAL_STEP_COUNTER = 0
+GLOBAL_MEMBERS_COUNTER = 0
 isAll = False
 def receive_message (ch, method, properties, body):
+	global  GLOBAL_MEMBERS_COUNTER
+	if body == Message.new_member:
+		# GLOBAL_MEMBERS_COUNTER = len(ch.consumer_tags)
+		GLOBAL_MEMBERS_COUNTER += 1
+		print "We have new member. Now we are: {}".format(GLOBAL_MEMBERS_COUNTER)
+
+		send_message(channel=ch,message=' '.join([Message.new_id,str(GLOBAL_MEMBERS_COUNTER)]))
 	print "[x] {}".format(body)
 
 def send_message (channel,message):
@@ -73,8 +82,11 @@ if __name__ == "__main__":
 	# 	else:
 	# 		break
 	time.sleep(3)
-	send_message(channel=channel,message="Begin initializing")
-	send_message(channel=channel,message="Begin initializing2")
+	# send_message(channel=channel,message="Begin initializing")
+	# send_message(channel=channel,message="Begin initializing2")
+	# send_message(channel=channel,message="Begin initializing2")
+	# send_message(channel=channel,message="Begin initializing2")
+	# send_message(channel=channel,message="Begin initializing2")
 	#
 	# print "[*] Waiting for messages..."
 

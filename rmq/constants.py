@@ -4,11 +4,12 @@ __author__ = 'Administrator'
 
 class Constants():
 
-		directExchangeToAdmin = "my_direct_exchange_to_admin"
-		fanoutExchangeFromAdmin = "my_fanout_exchange_from_admin"
+		directExchangeToAdmin = "my_direct_exchange_to_admin2"
+		fanoutExchangeFromAdmin = "my_fanout_exchange_from_admin2"
 		routing_key_from_admin = "from_admin"
 		routing_key_to_admin = "to_admin"
-
+		key_all_messages = "#"
+		key_all_full_messages = "*.*.*"
 		def __init__(self):
 			pass
 
@@ -22,7 +23,12 @@ class Message():
 	calculate_punishment = "calculate_punishment"
 	find_best_neighbour = "find_best_neighbour"
 	report_best_neighbour = "report_best_neigbour"
+	initializing = "initializing"
 	new_member = "new_member"
 	new_id = "new_id"
 	def __init__(self):
 		pass
+
+class Level():
+	info = "info"
+	report = "report"

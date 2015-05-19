@@ -7,13 +7,14 @@ from constants import Constants, Message
 class SubTM():
 	def __init__(self):
 		self.ID = -1
+		self.routing_key = '.'.join([str(self.ID),"report","update_energy"])
 		self.connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
 		self.channel = self.connection.channel()
 
 		self.result = self.channel.queue_declare(exclusive=True, durable=True)
 		self.queue_name = self.result.method.queue
 
-		self.send_message(message=Message.new_member)
+		self.send_message(message=Message.new_member,routing_key=Message.new_member)
 
 
 		self.begin_listen(queue_name=self.queue_name)
@@ -29,18 +30,20 @@ class SubTM():
 			if self.ID == -1:
 				self.ID = body.split()[-1]
 				print "My ID: " + str(self.ID)
+				self.send_message(message="I am now enumerated. So, check the connection with my routing_key",
+													routing_key=self.make_routing_key(" ", "info"))
 			return
 		else:
-			self.send_message(message="Got it! TODO: " + body)
+			self.send_message(message="Got it! TODO: " + body,routing_key=Message.initializing)
 
-	def send_message (self,message):
+	def send_message (self,message,routing_key):
 
 		print "[*] Sending Task: " + message
 
 		self.channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
-														 type='direct')
+														 type='topic')
 		self.channel.basic_publish(exchange=Constants.directExchangeToAdmin,
-													routing_key=Constants.routing_key_to_admin,
+													routing_key=routing_key,
 													properties=pika.BasicProperties(type="task", delivery_mode=1),
 													body = message)
 
@@ -58,6 +61,8 @@ class SubTM():
 
 		self.channel.start_consuming()
 
+	def make_routing_key(self,type,level="report"):
+		return '.'.join([str(self.ID),level,type])
 if __name__ == "__main__":
 	# connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
 	# channel = connection.channel()

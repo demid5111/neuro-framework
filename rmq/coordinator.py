@@ -4,7 +4,7 @@ import time
 
 import pika
 
-from constants import Constants, Message
+from constants import Constants, Message, Level
 
 
 GLOBAL_STEP_COUNTER = 0
@@ -12,13 +12,17 @@ GLOBAL_MEMBERS_COUNTER = 0
 isAll = False
 def receive_message (ch, method, properties, body):
 	global  GLOBAL_MEMBERS_COUNTER
-	if body == Message.new_member:
+	if method.routing_key == Message.new_member:
 		# GLOBAL_MEMBERS_COUNTER = len(ch.consumer_tags)
 		GLOBAL_MEMBERS_COUNTER += 1
 		print "We have new member. Now we are: {}".format(GLOBAL_MEMBERS_COUNTER)
 
 		send_message(channel=ch,message=' '.join([Message.new_id,str(GLOBAL_MEMBERS_COUNTER)]))
-	print "[x] {}".format(body)
+
+	elif Level.info in method.routing_key:
+		print "Nice to see you, Number {}!".format(method.routing_key.split('.')[0])
+	else:
+		print "[x] {}".format(body)
 
 def send_message (channel,message):
 	channel.exchange_declare(exchange=Constants.fanoutExchangeFromAdmin,
@@ -45,8 +49,8 @@ def receive_messages(channel,queue_name):
 	# queue_name = result.method.queue
 
 	channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
-													 type='direct')
-	channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=queue_name,routing_key=Constants.routing_key_to_admin)
+													 type='topic')
+	channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=queue_name,routing_key=Constants.key_all_messages)
 
 	channel.basic_consume(receive_message, queue=queue_name, no_ack=False)
 

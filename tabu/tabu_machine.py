@@ -3,7 +3,8 @@ import random
 from math import exp
 import warnings
 from operator import itemgetter
-from service_functions import output, print_matrix
+
+from service_functions import output
 
 
 __author__ = 'demid5111'
@@ -124,7 +125,6 @@ class TabuMachine():
 		self._tabu_list = [float("inf") for i in range(self._size)]
 
 	def fillWeightMatrix(self,adjMatrix):
-		assert len(adjMatrix) == self._size
 		assert len(adjMatrix[0]) == self._size
 		# output("Adjacency matrix:",isDebug=True)
 		# print_matrix(adjMatrix)

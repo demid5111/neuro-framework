@@ -12,7 +12,8 @@ def output(message, instance=None, isDebug=True, tabsNum=0,newLine=True):
 		if instance is not None:
 			log = "<{}>".format(instance)
 		if not newLine:
-			print(message,end="")
+			# print(message,end="")
+			print message
 		else:
 			print(time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log, str(('\t' * tabsNum) + message)))
 
@@ -42,7 +43,15 @@ def readCliqueInAdjMatrix(fileName):
 	isCliqueInfo = re.compile('^p\scol.*', re.IGNORECASE)
 	adjMatrix = []
 	current_working_directory = os.getcwd()
-	fileName = os.path.join(current_working_directory, "data", fileName)
+	isRoot = False
+	for i in os.listdir(current_working_directory):
+		if os.path.isdir(i):
+			isRoot = True
+			break
+	if isRoot:
+		fileName = os.path.join(current_working_directory, "data", fileName)
+	else:
+		fileName = os.path.join(os.path.dirname(current_working_directory),"data",fileName)
 	with open(fileName, "r") as f:
 		for line in f.readlines():
 			if isCliqueInfo.match(line):

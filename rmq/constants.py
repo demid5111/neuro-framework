@@ -3,7 +3,9 @@ __author__ = 'Administrator'
 
 
 class Constants():
-
+		body = "body"
+		adjacency_matrix = "adjacency_matrix"
+		message_key = "msg"
 		directExchangeToAdmin = "my_direct_exchange_to_admin2"
 		fanoutExchangeFromAdmin = "my_fanout_exchange_from_admin2"
 		routing_key_from_admin = "from_admin"
@@ -33,3 +35,11 @@ class Message():
 class Level():
 	info = "info"
 	report = "report"
+
+class Field():
+	myW = u"myW"
+	myC = u"myC"
+	mySize = u"mySize"	#that is the number of neurons on the tabu-machine
+	myTabu = u"myTabu"
+	myBeta = u"myBeta"
+	mySizeVec = u"mySizeVec"

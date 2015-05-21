@@ -103,7 +103,7 @@ class SubTM(TabuMachine):
 		self.myWeights = []
 		begin = 0
 		if self.ID != 0:
-			begin = sum(self.distribution[:self.ID-1])
+			begin = sum(self.distribution[:self.ID])
 		end = begin + self.distribution[self.ID]
 		for i in range(begin,end):
 			self.myWeights.append(weight_matrix[i])

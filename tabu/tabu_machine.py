@@ -11,11 +11,11 @@ __author__ = 'demid5111'
 
 class TabuMachine():
 	def __init__(self):
-		self.__k = 0      # number of  iterations
-		self.__h = 0      # number of iterations without changing local minimum
-		self.__c = 0      # number of going into far spaces of solution
-		self.__C = 0      # limit for self.c
-		self.__beta = 0   # defines the limit for number of local iterations
+		self._k = 0      # number of  iterations
+		self._h = 0      # number of iterations without changing local minimum
+		self._c = 0      # number of going into far spaces of solution
+		self._C = 0      # limit for self.c
+		self._beta = 0   # defines the limit for number of local iterations
 		#TODO: should the size of tabu be equal to the number of neurons
 		self.__l = 2      # defines the size of the tabu list
 		self.__smallPunishment = 10   # if there is no only one vertice to make a clique then punish via @link count_tax
@@ -51,22 +51,22 @@ class TabuMachine():
 		self.__l = l
 
 	def set_beta(self,beta):
-		self.__beta = beta
+		self._beta = beta
 		assert self.__l > 0
-		assert self.__beta * self._size > self.__l
+		assert self._beta * self._size > self.__l
 
 	def increment_k(self):
-		self.__k += 1
+		self._k += 1
 
 	def increment_h(self):
-		self.__h += 1
+		self._h += 1
 
 	def erase_h(self):
-		self.__h = 0
+		self._h = 0
 
 	def setC(self,C):
 		assert C > 0
-		self.__C = C
+		self._C = C
 
 	def set_energy(self,energy,isLocalMin=False):
 		try:
@@ -105,10 +105,10 @@ class TabuMachine():
 		return sum(state)
 
 	def get_C(self):
-		return self.__C
+		return self._C
 
 	def get_c(self):
-		return self.__c
+		return self._c
 	#############################################################################
 	# Getters and setters (Finish)
 	#############################################################################
@@ -327,14 +327,14 @@ class TabuMachine():
 
 	def moveNeuronToTabu(self,index):
 		assert self.check_tabu_list
-		self._tabu_list[index] = self.__k
+		self._tabu_list[index] = self._k
 
 	def is_smtp_over(self):
 		"""
 			Check if we have any more iterations in this space
 			:rtype : boolean
 		"""
-		if self.__h > self.__beta*self._size:
+		if self._h > self._beta*self._size:
 			return True
 		return False
 
@@ -343,7 +343,7 @@ class TabuMachine():
 			Check if we have any more jumps in this space
 			:rtype : boolean
 		"""
-		if self.__c >= self.__C:
+		if self._c >= self._C:
 			return True
 		return False
 
@@ -364,7 +364,7 @@ class TabuMachine():
 		checks if the neuron is in tabu list
 		:rtype : boolean
 		"""
-		if abs(self.__k - self._tabu_list[index]) <= self.__l:
+		if abs(self._k - self._tabu_list[index]) <= self.__l:
 			return True
 		return False
 
@@ -381,7 +381,7 @@ class TabuMachine():
 		return False
 
 	def increment_c(self):
-		self.__c += 1
+		self._c += 1
 	
 	def get_best_clique(self):
 		return [i+1 for i in range(self._size) if self._globalMinimumState[i] == 1]

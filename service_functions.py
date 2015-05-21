@@ -1,6 +1,11 @@
+from __future__ import print_function
+import json
 import os
 import random
 import re
+
+from rmq.constants import Constants, Level
+
 
 __author__ = 'demidovs'
 import time
@@ -12,8 +17,7 @@ def output(message, instance=None, isDebug=True, tabsNum=0,newLine=True):
 		if instance is not None:
 			log = "<{}>".format(instance)
 		if not newLine:
-			# print(message,end="")
-			print message
+			print(message,end="")
 		else:
 			print(time.strftime("%d/%m/%Y %I:%M:%S {} {}").format(log, str(('\t' * tabsNum) + message)))
 
@@ -79,3 +83,7 @@ def check_clique(vertices, adjMatrix):
 					left += 1
 
 	return left
+
+def pack_msg_json(message=Level.info, body={}):
+		body[Constants.message_key] = message
+		return json.dumps(body)

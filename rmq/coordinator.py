@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import json
 import os
 from subprocess import call
@@ -10,13 +11,14 @@ import sys
 import pika
 
 from constants import Constants, Message, Level, Field
-from service_functions import output, readCliqueInAdjMatrix
+from service_functions import output, readCliqueInAdjMatrix, pack_msg_json
 from tabu.tabu_machine import TabuMachine
 
 
 class Coordinator(TabuMachine):
 	def __init__(self, NUMBER=None):
 		TabuMachine.__init__(self)
+		self.readiness = []
 		self.GLOBAL_STEP_COUNTER = 0
 		self.GLOBAL_MEMBERS_COUNTER = 0
 		self.AVAILABLE_MACHINES = NUMBER
@@ -37,7 +39,7 @@ class Coordinator(TabuMachine):
 		### Connection issues (end)
 		##############################################
 
-		print "\nNow create as much machines as needed"
+		print ("\nNow create as much machines as needed")
 
 		self.create_machines(number=self.AVAILABLE_MACHINES)
 
@@ -46,30 +48,41 @@ class Coordinator(TabuMachine):
 		self.distribution = [] 	# distribution[i] is the number of the neurons on the ith machine
 
 	def receive_message (self,ch, method, properties, body):
+		sender_id = int(method.routing_key.split('.')[0])
 
-		if method.routing_key == Message.new_member:
-			# GLOBAL_MEMBERS_COUNTER = len(ch.consumer_tags)
-			self.GLOBAL_MEMBERS_COUNTER += 1
-			print "We have new member. Now we are: {}".format(self.GLOBAL_MEMBERS_COUNTER)
+		try:
+			data = json.loads(body)
 
-			self.send_message(message=' '.join([Message.new_id,str(self.GLOBAL_MEMBERS_COUNTER)]))
+			if Level.info in method.routing_key:
+				print ("Nice to see you, Number {}!".format(sender_id))
+			elif Message.initialized in method.routing_key:
 
-		elif Level.info in method.routing_key:
-			print "Nice to see you, Number {}!".format(method.routing_key.split('.')[0])
-		else:
-			print "[x] {}".format(body)
+				self.readiness[sender_id] = True
+				print ("[x] Number {}, see that you are ready!".format(sender_id))
+			elif Message.calculate_energy in method.routing_key:
+				if self.currentEnergy == float("inf"):
+					self.currentEnergy = data[Field.current_energy]
+				else:
+					self.currentEnergy += data[Field.current_energy]
+				self.readiness[sender_id] = True
+				print ("[x] Got energy from Number {}, his value = {}, global energy = {}"
+							 .format(sender_id,data[Field.current_energy],self.currentEnergy))
+		except ValueError, e:
+			# if method.routing_key == Message.new_member:
+			# 	# GLOBAL_MEMBERS_COUNTER = len(ch.consumer_tags)
+			# 	self.GLOBAL_MEMBERS_COUNTER += 1
+			# 	print ("We have new member. Now we are: {}".format(self.GLOBAL_MEMBERS_COUNTER))
+			#
+			# 	self.send_message(message=' '.join([Message.new_id,str(self.GLOBAL_MEMBERS_COUNTER)]))
+			# else:
+				print ("[x] {}".format(body))
+			# print (traceback.print_exc())
 
 
 	def send_message (self,message):
 		self.channel.exchange_declare(exchange=Constants.fanoutExchangeFromAdmin,
 														 type='fanout')
-		print "[*] Sending Task: " + message
-
-		# global GLOBAL_STEP_COUNTER
-		# if GLOBAL_STEP_COUNTER == 0:
-		# 	print "Step {}. Calculate weights myself".format(GLOBAL_STEP_COUNTER)
-		# elif GLOBAL_STEP_COUNTER == 1:
-		# 	print "Step {}. Slice weights matrix".format(GLOBAL_STEP_COUNTER)
+		print ("[*] Sending Task: " + message)
 
 		self.channel.basic_publish(exchange=Constants.fanoutExchangeFromAdmin,
 													routing_key=Constants.routing_key_from_admin,
@@ -77,7 +90,7 @@ class Coordinator(TabuMachine):
 													body = message)
 
 	def receive_messages(self):
-		print "[*] Waiting for messages..."
+		print ("[*] Waiting for messages...")
 
 		self.channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
 														 type='topic')
@@ -103,9 +116,7 @@ class Coordinator(TabuMachine):
 		if me_also:
 			os._exit(1)
 
-	def pack_json(self,message="info", body={}):
-		body[Constants.message_key] = message
-		return json.dumps(body)
+
 
 	def split_neurons_over_machines(self):
 		assert  self.AVAILABLE_MACHINES > 0
@@ -119,7 +130,19 @@ class Coordinator(TabuMachine):
 			else:
 				self.distribution[i] = n1
 
-
+	def is_network_ready(self):
+		isReady = True
+		for i in self.readiness:
+			if not i:
+				isReady = False
+				break
+		return isReady
+	
+	def prepare_readiness_list(self):
+		self.readiness = [False for i in range(self.AVAILABLE_MACHINES)]
+	
+	def erase_readiness(self):
+		self.readiness = [False for i in self.readiness]
 
 
 if __name__ == "__main__":
@@ -164,6 +187,7 @@ if __name__ == "__main__":
 		myCoordinator.set_tabu_size(TABU_SIZE)
 		myCoordinator.set_beta(BETA)
 		myCoordinator.initialize_tabu_list()
+		myCoordinator.prepare_readiness_list()
 		i += 1
 
 		output(message="Step {}. Split neurons by tabu-machines"
@@ -186,12 +210,35 @@ if __name__ == "__main__":
 		data[Constants.body][Field.myBeta] =  BETA
 		data[Constants.body][Field.myW] = myCoordinator.myWeights
 
-		message = myCoordinator.pack_json(message=Message.initializing, body=data)
+		message = pack_msg_json(message=Message.initializing, body=data)
 		myCoordinator.send_message(message=message)
 		i += 1
 
+		while True:
+			if myCoordinator.is_network_ready():
+				break
 
-		myCoordinator.kill_machines(me_also=True)
+		print ("Everyone is initialized and ready to start...")
+		
+		myCoordinator.erase_readiness()
+
+		print ("Step {}. Count current energy and tax".format(str(i)))
+		message = pack_msg_json(message=Message.calculate_energy)
+		myCoordinator.send_message(message=message)
+		# energy = my.count_energy(myTM.getCurrentState())
+		# tax = myTM.count_tax(myTM.getCurrentState())
+		# myTM.set_energy(energy)
+		# myTM.set_tax(tax)
+		while True:
+			if myCoordinator.is_network_ready():
+				break
+
+		print ("Got initial value of energy. It is: {}...".format(myCoordinator.currentEnergy))
+
+		myCoordinator.erase_readiness()
+		i += 1
+
+		# myCoordinator.kill_machines(me_also=True)
 	except Exception, e:
 		myCoordinator.kill_machines()
-		print traceback.print_exc()
+		print (traceback.print_exc())

@@ -5,7 +5,8 @@ import sys
 
 import pika
 
-from constants import Constants, Message, Field
+from constants import Constants, Message, Field, Level
+from service_functions import pack_msg_json
 from tabu.tabu_machine import TabuMachine
 
 
@@ -20,24 +21,24 @@ class SubTM(TabuMachine):
 		self.queue_name = self.result.method.queue
 		if number:
 			self.ID = int(number)
-			self.send_message(message="I am now enumerated. So, check the connection with my routing_key",
+
+			data = {}
+			data[Message.info] = "I am now enumerated. So, check the connection with my routing_key"
+			message = pack_msg_json(message=Level.info,body=data)
+			self.send_message(message=message,
 												routing_key=self.make_routing_key(" ", "info"))
 		else:
 			self.send_message(message=Message.new_member, routing_key=Message.new_member)
 		self.begin_listen(queue_name=self.queue_name)
 
 	def receive_message (self, ch, method, properties, body):
-		print method.routing_key
+
 		if "admin" in body:
 			print "Hey, Admin!"
-		else:
-			print "[x] {}".format(body)
+		# else:
+		# 	print "[x] {}".format(body)
 		try:
 			data = json.loads(body)
-			print data
-			print data[Constants.message_key] == Message.initializing
-			print data[Constants.message_key] in Message.initializing
-			print type(data[Constants.message_key]), type(Message.initializing)
 			#then it is the switch by the message
 			if data[Constants.message_key] == Message.initializing:
 				print "Begin initialization..."
@@ -50,13 +51,23 @@ class SubTM(TabuMachine):
 				self.initialize_state()
 				self.set_weight_matrix(weight_matrix=data[Constants.body][Field.myW])
 				print self
+				data = {}
+				message = pack_msg_json()
+				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.initialized))
+
+			elif data[Constants.message_key] == Message.calculate_energy:
+				energy = self.count_energy(self.currentState)
+				data = {}
+				data[Field.current_energy] = energy
+				message = pack_msg_json(message=Message.calculate_energy,body=data)
+				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.calculate_energy))
 		except ValueError:
 			if Message.new_id in body:
 				if self.ID == -1:
 					self.ID = body.split()[-1]
 					print "My ID: " + str(self.ID)
-					self.send_message(message="I am now enumerated. So, check the connection with my routing_key",
-														routing_key=self.make_routing_key(" ", "info"))
+					message = pack_msg_json(message=Level.info)
+					self.send_message(message=message, routing_key=self.make_routing_key(" ", "info"))
 				return
 			elif Message.kill_everyone in body:
 				print "Bye!"
@@ -93,8 +104,18 @@ class SubTM(TabuMachine):
 		return '.'.join([str(self.ID),level,type])
 
 	def __str__(self):
-		tmp = "<{} ID={}, Size={}> \n\tCurrent state = {}\n\tW = {}\n".format(SubTM.__name__,self.ID,self._size, self.currentState,self.myWeights)
-		return tmp
+		tmp = []
+		tmp.append("<{} ID={}, Size={}>".format(SubTM.__name__,self.ID,self._size))
+		tmp.append("Current state = {}".format(self.currentState))
+		tmp.append("W = {}".format(self.myWeights))
+		tmp.append("C = {}".format(self._C))
+		tmp.append("beta = {}".format(self._beta))
+		tmp.append("h = {}".format(self._h))
+		tmp.append("k = {}".format(self._k))
+		tmp.append("c = {}".format(self._c))
+
+		res = '\n'.join([tmp[0],'\n\t'.join(tmp[1:])])
+		return res
 
 	def set_distribution_vec(self, vec):
 		self.distribution = copy(vec)

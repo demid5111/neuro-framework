@@ -16,6 +16,7 @@ class Constants():
 			pass
 
 class Message():
+	initialized = "initialized"
 	update_energy="update_energy"
 	update_energies = "update_energies"
 	update_punishment = "update_punishment"
@@ -29,6 +30,7 @@ class Message():
 	kill_everyone = "kill_everyone"
 	new_member = "new_member"
 	new_id = "new_id"
+	info = "info"
 	def __init__(self):
 		pass
 
@@ -37,6 +39,7 @@ class Level():
 	report = "report"
 
 class Field():
+	current_energy = "current_energy"
 	myW = u"myW"
 	myC = u"myC"
 	mySize = u"mySize"	#that is the number of neurons on the tabu-machine

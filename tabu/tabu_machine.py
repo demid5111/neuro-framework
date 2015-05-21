@@ -189,7 +189,9 @@ class TabuMachine():
 
 	def check_for_energy_tax_update(self):
 		isChanged = False
-		if self.currentEnergy < self._globalMinimumEnergy and self.currentTax == 0:
+		# TODO: discuss the validity of such approach when checking on the global optimality
+		# if self.currentEnergy < self._globalMinimumEnergy and self.currentTax == 0:
+		if self.currentEnergy < self._globalMinimumEnergy:
 			output("\t New global optimum registered: old value = {}, new value = {}"\
 					 .format(str(self._globalMinimumEnergy),str(self.currentEnergy)),isDebug=False)
 			self._globalMinimumEnergy = self.currentEnergy

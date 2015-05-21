@@ -15,6 +15,9 @@ class SubTM(TabuMachine):
 		TabuMachine.__init__(self)
 		self.ID = -1
 		self.routing_key = '.'.join([str(self.ID), "report", "update_energy"])
+		self.beginIndex = -1
+		self.endIndex = -1
+
 		self.connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
 		self.channel = self.connection.channel()
 		self.result = self.channel.queue_declare(exclusive=True, durable=True)
@@ -24,7 +27,7 @@ class SubTM(TabuMachine):
 
 			data = {}
 			data[Message.info] = "I am now enumerated. So, check the connection with my routing_key"
-			message = pack_msg_json(message=Level.info,body=data)
+			message = pack_msg_json(level=Level.info,body=data)
 			self.send_message(message=message,
 												routing_key=self.make_routing_key(" ", "info"))
 		else:
@@ -49,9 +52,10 @@ class SubTM(TabuMachine):
 				self.set_beta(data[Constants.body][Field.myBeta])
 				self.initialize_tabu_list()
 				self.initialize_state()
+				self.calculate_index_bounds()
 				self.set_weight_matrix(weight_matrix=data[Constants.body][Field.myW])
+
 				print self
-				data = {}
 				message = pack_msg_json()
 				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.initialized))
 
@@ -59,14 +63,55 @@ class SubTM(TabuMachine):
 				energy = self.count_energy(self.currentState)
 				data = {}
 				data[Field.current_energy] = energy
-				message = pack_msg_json(message=Message.calculate_energy,body=data)
+				message = pack_msg_json(level=Message.calculate_energy,body=data)
 				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.calculate_energy))
+
+			elif data[Constants.message_key] == Message.calculate_deltas:
+				self.count_energy_diff_states(isInitial=True)
+				index = self.choose_best_neighbour_simple()
+				data = {}
+				data[Message.report_best_neighbour] = index
+				data[Message.energy_diff] = self._diffEi[index]
+				tmp_state = self.currentState
+				tmp_state[index] = 1 - tmp_state[index]
+				data[Field.myCurrentState] = tmp_state
+				message = pack_msg_json(level=Message.report_best_neighbour,body=data)
+				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.report_best_neighbour))
+
+			elif data[Constants.message_key] == Message.global_best_neighbour:
+				index = data[Constants.body][Field.myChangedNeuron]
+				isUpdateNeeded = False
+				print index
+				print self.beginIndex
+				print self.endIndex
+				print index >= self.beginIndex
+				print index < self.endIndex
+				if index >= self.beginIndex and index < self.endIndex:
+					newI = index - self.beginIndex
+					print newI
+					for i in range(len(self.myWeights)):
+						if self.myWeights[i][newI] != 0:
+							isUpdateNeeded = True
+							break
+
+				self.set_energy(energy=data[Constants.body][Field.myCurrentEnergy])
+
+				if isUpdateNeeded:
+					# then this is the neuron of the current machine
+					self.changeCurrentState(indexToChange=index)
+
+					self.moveNeuronToTabu(index=index)
+					self.count_energy_diff_states(i=index)
+
+					print self
+				message = pack_msg_json()
+				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.ready))
 		except ValueError:
 			if Message.new_id in body:
 				if self.ID == -1:
 					self.ID = body.split()[-1]
 					print "My ID: " + str(self.ID)
-					message = pack_msg_json(message=Level.info)
+					message = pack_msg_json(level=Level.info)
 					self.send_message(message=message, routing_key=self.make_routing_key(" ", "info"))
 				return
 			elif Message.kill_everyone in body:
@@ -121,13 +166,18 @@ class SubTM(TabuMachine):
 		self.distribution = copy(vec)
 
 	def set_weight_matrix(self,weight_matrix):
+		assert self.beginIndex >= 0
+		assert self.endIndex > 0
 		self.myWeights = []
-		begin = 0
-		if self.ID != 0:
-			begin = sum(self.distribution[:self.ID])
-		end = begin + self.distribution[self.ID]
-		for i in range(begin,end):
+
+		for i in range(self.beginIndex,self.endIndex):
 			self.myWeights.append(weight_matrix[i])
+
+	def calculate_index_bounds(self):
+		self.beginIndex = 0
+		if self.ID != 0:
+			self.beginIndex = sum(self.distribution[:self.ID])
+		self.endIndex = self.beginIndex + self.distribution[self.ID]
 
 
 if __name__ == "__main__":

@@ -16,6 +16,8 @@ class Constants():
 			pass
 
 class Message():
+	ready = "ready"
+	energy_diff = "energy_diff"
 	initialized = "initialized"
 	update_energy="update_energy"
 	update_energies = "update_energies"
@@ -24,7 +26,7 @@ class Message():
 	calculate_energy = "calculate_energy"
 	calculate_deltas = "calculate_deltas"
 	calculate_punishment = "calculate_punishment"
-	find_best_neighbour = "find_best_neighbour"
+	global_best_neighbour = "global_best_neighbour"
 	report_best_neighbour = "report_best_neigbour"
 	initializing = "initializing"
 	kill_everyone = "kill_everyone"
@@ -39,6 +41,9 @@ class Level():
 	report = "report"
 
 class Field():
+	myCurrentEnergy = "myCurrentEnergy"
+	myChangedState = "myChangedState"
+	myChangedDelta = "myChangedDelta"
 	current_energy = "current_energy"
 	myW = u"myW"
 	myC = u"myC"
@@ -46,3 +51,5 @@ class Field():
 	myTabu = u"myTabu"
 	myBeta = u"myBeta"
 	mySizeVec = u"mySizeVec"
+	myCurrentState = "myCurrentState"
+	myChangedNeuron = "myChangedNeuron"

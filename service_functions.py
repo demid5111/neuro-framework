@@ -84,6 +84,6 @@ def check_clique(vertices, adjMatrix):
 
 	return left
 
-def pack_msg_json(message=Level.info, body={}):
-		body[Constants.message_key] = message
+def pack_msg_json(level=Level.info, body={}):
+		body[Constants.message_key] = level
 		return json.dumps(body)

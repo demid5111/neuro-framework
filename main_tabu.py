@@ -1,5 +1,3 @@
-import os
-
 from service_functions import output, readCliqueInAdjMatrix, check_clique
 from tabu.tabu_machine import TabuMachine
 
@@ -103,9 +101,9 @@ if __name__ == "__main__":
 				output("\t Local search is over. Need to move far away from here. c = {}, C = {}"\
 							 .format(myTM.get_c(),myTM.get_C()),isDebug=False,tabsNum=1)
 				oldIndex = myTM.get_oldest_neuron()
-				myTM.changeCurrentState(bestNeighbour)
-				myTM.moveNeuronToTabu(bestNeighbour)
-				myTM.update_energy(bestNeighbour,isLocalMin=True)
+				myTM.changeCurrentState(oldIndex)
+				myTM.moveNeuronToTabu(oldIndex)
+				myTM.update_energy(oldIndex,isLocalMin=True)
 				# myTM.update_tax(bestNeighbour)
 				myTM.set_tax(myTM.count_tax(myTM.getCurrentState()))
 				myTM.erase_h()
@@ -113,7 +111,7 @@ if __name__ == "__main__":
 				i += 1
 				output(message="Step {}. Update neighbours energies and taxes"\
 					.format(str(i)), isDebug=True,tabsNum=1)
-				myTM.count_energy_diff_states(bestNeighbour)
+				myTM.count_energy_diff_states(oldIndex)
 				# myTM.count_taxes()
 				i += 1
 		else:

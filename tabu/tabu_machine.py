@@ -133,7 +133,7 @@ class TabuMachine():
 		for i in range(0,self._size):
 			for j in range(0,self._size):
 				#TODO: decide whether to use -2 * A as multiplier or not
-				self.myWeights[i][j] = -2*self.myA*(1 - adjMatrix[i][j])*(1-self.kron(i,j))
+				self.myWeights[i][j] = -2 * self.myA * (1 - adjMatrix[i][j])*(1-self.kron(i,j))
 		# output("Weight matrix:",isDebug=True)
 		# print_matrix(self.myWeights)
 
@@ -151,10 +151,10 @@ class TabuMachine():
 		assert len(state) == self._size
 
 		tmp = 0
-		for i in range(0,self._size):
-			for j in range(0,self._size):
+		for i in range(self._size):
+			for j in range(self._size):
 				tmp += self.myWeights[i][j]* state [i] * state [j]
-		return (-1/2) * tmp - self.myB * sum(state)
+		return tmp - self.myB * sum(state)
 
 	def count_tax(self,state):
 		assert len(state) == self._size
@@ -336,6 +336,10 @@ class TabuMachine():
 			Check if we have any more iterations in this space
 			:rtype : boolean
 		"""
+		print self._h
+		print self._beta
+		print self._size
+		print self._beta*self._size
 		if self._h > self._beta*self._size:
 			return True
 		return False

@@ -16,6 +16,8 @@ class Constants():
 			pass
 
 class Message():
+	report_oldest_neuron = "report_oldest_neuron"
+	get_oldest_neuron = "get_oldes_neuron"
 	ready = "ready"
 	energy_diff = "energy_diff"
 	initialized = "initialized"
@@ -41,6 +43,8 @@ class Level():
 	report = "report"
 
 class Field():
+	myIterationNumber = "myIterationNumber"
+	myOldestNeuron = "myOldestNeuron"
 	myCurrentEnergy = "myCurrentEnergy"
 	myChangedState = "myChangedState"
 	myChangedDelta = "myChangedDelta"

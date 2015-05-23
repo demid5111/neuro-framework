@@ -70,7 +70,7 @@ class SubTM(TabuMachine):
 				self.count_energy_diff_states(isInitial=True)
 				index = self.choose_best_neighbour_simple()
 				data = {}
-				data[Message.report_best_neighbour] = index
+				data[Message.report_best_neighbour] = index + self.beginIndex
 				data[Message.energy_diff] = self._diffEi[index]
 				tmp_state = self.currentState
 				tmp_state[index] = 1 - tmp_state[index]
@@ -81,31 +81,49 @@ class SubTM(TabuMachine):
 			elif data[Constants.message_key] == Message.global_best_neighbour:
 				index = data[Constants.body][Field.myChangedNeuron]
 				isUpdateNeeded = False
-				print index
-				print self.beginIndex
-				print self.endIndex
-				print index >= self.beginIndex
-				print index < self.endIndex
+
 				if index >= self.beginIndex and index < self.endIndex:
-					newI = index - self.beginIndex
-					print newI
-					for i in range(len(self.myWeights)):
-						if self.myWeights[i][newI] != 0:
+					newJ = index - self.beginIndex
+					print newJ
+					for i in range(self.beginIndex,self.endIndex):
+						newI = i - self.beginIndex
+						if self.myWeights[newI][newJ] != 0:
 							isUpdateNeeded = True
 							break
 
 				self.set_energy(energy=data[Constants.body][Field.myCurrentEnergy])
-
+				isChanged = self.check_for_energy_tax_update()
+				if isChanged:
+					self.erase_h()
+				else:
+					self.increment_h()
+				self.increment_k()
 				if isUpdateNeeded:
+					print ("i need to update my values")
 					# then this is the neuron of the current machine
 					self.changeCurrentState(indexToChange=index)
 
 					self.moveNeuronToTabu(index=index)
 					self.count_energy_diff_states(i=index)
 
-					print self
+				print self
+
 				message = pack_msg_json()
 				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.ready))
+
+			elif data[Constants.message_key] == Message.get_oldest_neuron:
+				index = self.get_oldest_neuron()
+				energy = self._diffEi[index]
+				iteration = self._tabu_list[index]
+				data = {}
+				data[Constants.body] =  {}
+				data[Constants.body][Field.myOldestNeuron] = index
+				data[Constants.body][Field.myChangedDelta] = energy
+				data[Constants.body][Field.myIterationNumber] = index
+
+				message = pack_msg_json(level=Message.report_oldest_neuron,body=data)
+				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.report_oldest_neuron))
+
 		except ValueError:
 			if Message.new_id in body:
 				if self.ID == -1:
@@ -179,6 +197,40 @@ class SubTM(TabuMachine):
 			self.beginIndex = sum(self.distribution[:self.ID])
 		self.endIndex = self.beginIndex + self.distribution[self.ID]
 
+	def count_energy_diff_states(self, j = -1,isInitial = False):
+		""" Recalculates energies possible changes
+		:param j: index of neuron changed its state
+		:return: void, works only with current state
+		"""
+		assert len(self.currentState) > 0
+		if not isInitial:
+			for i in range(self.beginIndex,self.endIndex):
+				print ("My current index is: {}".format(i))
+				if i == j:
+					self._diffEi[i] = -self._diffEi[i]
+				elif i != j and self.currentState[i] == 0:
+					self._diffEi[i] += self.myWeights[i][j] * (1 - 2*self.currentState[j])
+				else:
+					self._diffEi[i] -= self.myWeights[i][j] * (1 - 2*self.currentState[j])
+		else:
+			for j in range(self.beginIndex,self.endIndex):
+				sum = 0
+				for i in range(self.beginIndex,self.endIndex):
+					newI = i - self.beginIndex
+					newJ = j - self.beginIndex
+					sum += self.myWeights[newI][j]*self.currentState[newI]
+				self._diffEi[newJ] = (2 * self.currentState[newJ])*(sum - self.myB)
+
+	def count_energy(self,state):
+		assert len(state) == self._size
+
+		tmp = 0
+		for i in range(self.beginIndex,self.endIndex):
+			newI = i - self.beginIndex
+			for j in range(self.beginIndex,self.endIndex):
+				newJ = j - self.beginIndex
+				tmp += self.myWeights[newI][j]* state [newI] * state [newJ]
+		return tmp - self.myB * sum(state)
 
 if __name__ == "__main__":
 

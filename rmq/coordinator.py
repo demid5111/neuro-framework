@@ -358,47 +358,44 @@ if __name__ == "__main__":
 							break
 
 					print("\nAll machines sent their oldest neighbours...")
+					myCoordinator.erase_readiness()
+					i += 1
 
-					# print("Step {}. Make simple auction and choose best. "
-					# 	"Notify everyone to make them update values and move the neuron to tabu"
-					# 	"Update local, global minimums if needed".format(str(i)))
-					# index, delta, state = myCoordinator.make_auction()
-					# newEnergy = myCoordinator.currentEnergy + delta
-					# myCoordinator.set_energy(newEnergy)
-					# myCoordinator.moveNeuronToTabu(index=index)
-					#
-					# data = {}
-					# data[Constants.message_key] = Message.global_best_neighbour
-					# data[Constants.body] = {}
-					# data[Constants.body][Field.myChangedNeuron] = index
-					# data[Constants.body][Field.myChangedDelta] = delta
-					# data[Constants.body][Field.myChangedState] = state
-					# data[Constants.body][Field.myCurrentEnergy] = newEnergy
-					# message = pack_msg_json(level=Message.global_best_neighbour,body=data)
-					# myCoordinator.send_message(message=message)
-					#
+					print("Step {}. Make simple auction and choose best. "
+						"Notify everyone to make them update values and move the neuron to tabu"
+						"Update local, global minimums if needed".format(str(i)))
+					index, delta, state = myCoordinator.make_auction()
+					newEnergy = myCoordinator.currentEnergy + delta
+					myCoordinator.set_energy(newEnergy)
+					myCoordinator.moveNeuronToTabu(index=index)
+					myCoordinator.changeCurrentState(indexToChange=index)
+					myCoordinator.update_energy(index=index,isLocalMin=True)
+					myCoordinator.increment_c()
+					myCoordinator.erase_h()
 
+					data = {}
+					data[Constants.message_key] = Message.global_best_neighbour
+					data[Constants.body] = {}
+					data[Constants.body][Field.myChangedNeuron] = index
+					data[Constants.body][Field.myChangedDelta] = delta
+					data[Constants.body][Field.myChangedState] = state
+					data[Constants.body][Field.myCurrentState] = myCoordinator.getCurrentState()
+					data[Constants.body][Field.myCurrentEnergy] = newEnergy
+					data[Constants.body][Field.isForce] = True
+					message = pack_msg_json(level=Message.global_best_neighbour,body=data)
+					myCoordinator.send_message(message=message)
 
-					# myCoordinator.changeCurrentState(oldIndex)
-					# myCoordinator.moveNeuronToTabu(oldIndex)
-					# myCoordinator.update_energy(oldIndex,isLocalMin=True)
-					# # myTM.update_tax(bestNeighbour)
-					# myCoordinator.set_tax(myCoordinator.count_tax(myCoordinator.getCurrentState()))
-					# myCoordinator.erase_h()
-					# myCoordinator.increment_c()
-					# i += 1
-					# output(message="Step {}. Update neighbours energies and taxes"\
-					# 	.format(str(i)), isDebug=True,tabsNum=1)
-					# myCoordinator.count_energy_diff_states(oldIndex)
-					# # myTM.count_taxes()
+					while True:
+						if myCoordinator.is_network_ready():
+							break
+
+					print("\nAll machines sent their oldest neighbours...")
+					myCoordinator.erase_readiness()
 					i += 1
 			else:
 				print("\n\t Continue local search")
 				# time.sleep(5)
-			i += 1
 
-
-		# myCoordinator.kill_machines(me_also=True)
 	except Exception, e:
 		myCoordinator.kill_machines()
 		print(traceback.print_exc())

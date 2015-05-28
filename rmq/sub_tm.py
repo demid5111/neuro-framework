@@ -92,9 +92,8 @@ class SubTM(TabuMachine):
 				index = data[Constants.body][Field.myChangedNeuron]
 				isUpdateNeeded = False
 				newJ = -1
-				# if index >= self.beginIndex and index < self.endIndex:
-					# newJ = index - self.beginIndex
-					# print newJ
+				if index >= self.beginIndex and index < self.endIndex:
+					newJ = index - self.beginIndex
 				for i in range(self.beginIndex,self.endIndex):
 					newI = i - self.beginIndex
 					print "i = {}, index changed = {}, weight = {}".format(newI,index,self.myWeights[newI][index])
@@ -103,14 +102,27 @@ class SubTM(TabuMachine):
 						break
 
 				self.set_energy(energy=data[Constants.body][Field.myCurrentEnergy])
+				isForce = False
+				try:
+					isForce = data[Constants.body][Field.isForce]
+				except KeyError:
+					pass
+				if isForce:
+					# TODO: make the oldest neuron be the local minimum found so far
+					if newJ >= 0:
+						self.update_energy(index=newJ,isLocalMin=True)
+					self.erase_h()
+					self.increment_c()
+
 				isChanged = self.check_for_energy_tax_update()
 				if isChanged:
 					self.erase_h()
 				else:
 					self.increment_h()
+
 				self.increment_k()
 
-				if index >= self.beginIndex and index < self.endIndex:
+				if newJ >= 0:
 					newJ = index - self.beginIndex
 					self.changeCurrentState(indexToChange=newJ)
 
@@ -118,7 +130,7 @@ class SubTM(TabuMachine):
 				self.globalCurrentState = data[Constants.body][Field.myCurrentState]
 
 				if isUpdateNeeded:
-					print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!i need to update my values")
+					print ("Updating values...")
 					# then this is the neuron of the current machine
 
 					self.count_energy_diff_states(j=index)
@@ -141,6 +153,7 @@ class SubTM(TabuMachine):
 
 				message = pack_msg_json(level=Message.report_oldest_neuron,body=data)
 				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.report_oldest_neuron))
+
 
 		except ValueError:
 			if Message.new_id in body:

@@ -16,6 +16,7 @@ class Constants():
 			pass
 
 class Message():
+	set_oldest_neuron = "set_oldest_neuron"
 	report_oldest_neuron = "report_oldest_neuron"
 	get_oldest_neuron = "get_oldes_neuron"
 	ready = "ready"
@@ -43,6 +44,7 @@ class Level():
 	report = "report"
 
 class Field():
+	isForce = "isForce"
 	myID = "myID"
 	myIterationNumber = "myIterationNumber"
 	myOldestNeuron = "myOldestNeuron"

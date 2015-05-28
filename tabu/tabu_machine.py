@@ -239,7 +239,7 @@ class TabuMachine():
 				sum = 0
 				for i in range(self._size):
 					sum += self.myWeights[i][j]*self.currentState[i]
-				self._diffEi[j] = (2 * self.currentState[j])*(sum - self.myB)
+				self._diffEi[j] = (2 * self.currentState[j] - 1)*(sum - self.myB)
 
 	def choose_best_neighbour(self):#,energies,taxes):
 		rejected = []     #list of prohibited indexes which are rejected because of tabu and energy
@@ -336,10 +336,6 @@ class TabuMachine():
 			Check if we have any more iterations in this space
 			:rtype : boolean
 		"""
-		print self._h
-		print self._beta
-		print self._size
-		print self._beta*self._size
 		if self._h > self._beta*self._size:
 			return True
 		return False

@@ -23,7 +23,7 @@ class Coordinator(TabuMachine):
 		self.GLOBAL_STEP_COUNTER = 0
 		self.GLOBAL_MEMBERS_COUNTER = 0
 		self.AVAILABLE_MACHINES = NUMBER
-
+		self.states = []
 		##############################################
 		### Connection issues(begin)
 		##############################################
@@ -57,7 +57,6 @@ class Coordinator(TabuMachine):
 			if Level.info in method.routing_key:
 				print("Nice to see you, Number {}!".format(sender_id))
 			elif Message.initialized in method.routing_key or Message.ready in method.routing_key:
-
 				self.readiness[sender_id] = True
 				print("[x] Number {}, see that you are ready!".format(sender_id))
 			elif Message.calculate_energy in method.routing_key:
@@ -171,6 +170,17 @@ class Coordinator(TabuMachine):
 		return res[0]  # tuple is (index,deltas,state)
 
 
+def check_symmetry(myAdjMatrix):
+	isSymmetric = True
+	for i in range(len(myAdjMatrix)):
+		for j in range(len(myAdjMatrix)):
+			if j >= i:
+				if myAdjMatrix[i][j] != myAdjMatrix[j][i]:
+					isSymmetric = False
+					break
+	return isSymmetric
+
+
 if __name__ == "__main__":
 	myCoordinator = None
 
@@ -189,6 +199,10 @@ if __name__ == "__main__":
 		i += 1
 		output(message="Step {}. Read clique from file {}".format(str(i), fileName), isDebug=True)
 		myAdjMatrix = readCliqueInAdjMatrix(fileName)
+		isSymmetric = check_symmetry(myAdjMatrix)
+		if not isSymmetric:
+			print ("Wrong matrix")
+			myCoordinator.kill_machines()
 		# print(myAdjMatrix)
 		myC = 5
 
@@ -212,6 +226,7 @@ if __name__ == "__main__":
 		myCoordinator.setSize(len(myAdjMatrix))
 		myCoordinator.set_tabu_size(TABU_SIZE)
 		myCoordinator.set_beta(BETA)
+		myCoordinator.initialize_state()
 		myCoordinator.initialize_tabu_list()
 		myCoordinator.prepare_readiness_list()
 		myCoordinator.initialize_options_list()
@@ -237,6 +252,7 @@ if __name__ == "__main__":
 		data[Constants.body][Field.myTabu] = TABU_SIZE
 		data[Constants.body][Field.myBeta] = BETA
 		data[Constants.body][Field.myW] = myCoordinator.myWeights
+		data[Constants.body][Field.myCurrentState] = myCoordinator.getCurrentState()
 
 		message = pack_msg_json(level=Message.initializing, body=data)
 		myCoordinator.send_message(message=message)
@@ -266,6 +282,7 @@ if __name__ == "__main__":
 
 		print ("Begin cycling and looking for the solution")
 		while True:
+			# variable = raw_input("Input anything to continue")
 			print("Step {}. Evaluate neighbours and choose best on each machine".format(str(i)))
 			message = pack_msg_json(level=Message.calculate_deltas)
 			myCoordinator.send_message(message=message)
@@ -286,13 +303,14 @@ if __name__ == "__main__":
 			newEnergy = myCoordinator.currentEnergy + delta
 			myCoordinator.set_energy(newEnergy)
 			myCoordinator.moveNeuronToTabu(index=index)
-
+			myCoordinator.changeCurrentState(indexToChange=index)
 			data = {}
 			data[Constants.message_key] = Message.global_best_neighbour
 			data[Constants.body] = {}
 			data[Constants.body][Field.myChangedNeuron] = index
 			data[Constants.body][Field.myChangedDelta] = delta
 			data[Constants.body][Field.myChangedState] = state
+			data[Constants.body][Field.myCurrentState] = myCoordinator.getCurrentState()
 			data[Constants.body][Field.myCurrentEnergy] = newEnergy
 			message = pack_msg_json(level=Message.global_best_neighbour,body=data)
 			myCoordinator.send_message(message=message)

@@ -43,6 +43,7 @@ class Level():
 	report = "report"
 
 class Field():
+	myID = "myID"
 	myIterationNumber = "myIterationNumber"
 	myOldestNeuron = "myOldestNeuron"
 	myCurrentEnergy = "myCurrentEnergy"

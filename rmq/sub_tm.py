@@ -14,14 +14,17 @@ class SubTM(TabuMachine):
 	def __init__(self, number=None):
 		TabuMachine.__init__(self)
 		self.ID = -1
-		self.routing_key = '.'.join([str(self.ID), "report", "update_energy"])
 		self.beginIndex = -1
 		self.endIndex = -1
-
+		self.globalCurrentState = []
+		#########################################
+		### Rabbit MQ specific initialization
+		#########################################
 		self.connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
 		self.channel = self.connection.channel()
 		self.result = self.channel.queue_declare(exclusive=True, durable=True)
 		self.queue_name = self.result.method.queue
+		self.routing_key = '.'.join([str(self.ID), "report", "update_energy"])
 		if number:
 			self.ID = int(number)
 
@@ -50,13 +53,18 @@ class SubTM(TabuMachine):
 				self.set_distribution_vec(data[Constants.body][Field.mySizeVec])
 				self.set_tabu_size(data[Constants.body][Field.myTabu])
 				self.set_beta(data[Constants.body][Field.myBeta])
+				self.set_global_current_state(data[Constants.body][Field.myCurrentState])
 				self.initialize_tabu_list()
-				self.initialize_state()
 				self.calculate_index_bounds()
+				self.initialize_state()
+
 				self.set_weight_matrix(weight_matrix=data[Constants.body][Field.myW])
 
 				print self
-				message = pack_msg_json()
+				data = {}
+				data[Constants.body] = {}
+				data[Constants.body][Field.myCurrentState] = self.getCurrentState()
+				message = pack_msg_json(level=Message.initialized,body=data)
 				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.initialized))
 
 			elif data[Constants.message_key] == Message.calculate_energy:
@@ -69,6 +77,7 @@ class SubTM(TabuMachine):
 			elif data[Constants.message_key] == Message.calculate_deltas:
 				self.count_energy_diff_states(isInitial=True)
 				index = self.choose_best_neighbour_simple()
+				print "Chose index={}, delta = {}".format(index,self._diffEi[index])
 				data = {}
 				data[Message.report_best_neighbour] = index + self.beginIndex
 				data[Message.energy_diff] = self._diffEi[index]
@@ -79,17 +88,19 @@ class SubTM(TabuMachine):
 				self.send_message(message=message,routing_key=self.make_routing_key(type=Message.report_best_neighbour))
 
 			elif data[Constants.message_key] == Message.global_best_neighbour:
+				print "\n",data
 				index = data[Constants.body][Field.myChangedNeuron]
 				isUpdateNeeded = False
-
-				if index >= self.beginIndex and index < self.endIndex:
-					newJ = index - self.beginIndex
-					print newJ
-					for i in range(self.beginIndex,self.endIndex):
-						newI = i - self.beginIndex
-						if self.myWeights[newI][newJ] != 0:
-							isUpdateNeeded = True
-							break
+				newJ = -1
+				# if index >= self.beginIndex and index < self.endIndex:
+					# newJ = index - self.beginIndex
+					# print newJ
+				for i in range(self.beginIndex,self.endIndex):
+					newI = i - self.beginIndex
+					print "i = {}, index changed = {}, weight = {}".format(newI,index,self.myWeights[newI][index])
+					if self.myWeights[newI][index] != 0:
+						isUpdateNeeded = True
+						break
 
 				self.set_energy(energy=data[Constants.body][Field.myCurrentEnergy])
 				isChanged = self.check_for_energy_tax_update()
@@ -98,13 +109,20 @@ class SubTM(TabuMachine):
 				else:
 					self.increment_h()
 				self.increment_k()
-				if isUpdateNeeded:
-					print ("i need to update my values")
-					# then this is the neuron of the current machine
-					self.changeCurrentState(indexToChange=index)
 
-					self.moveNeuronToTabu(index=index)
-					self.count_energy_diff_states(i=index)
+				if index >= self.beginIndex and index < self.endIndex:
+					newJ = index - self.beginIndex
+					self.changeCurrentState(indexToChange=newJ)
+
+					self.moveNeuronToTabu(index=newJ)
+				self.globalCurrentState = data[Constants.body][Field.myCurrentState]
+
+				if isUpdateNeeded:
+					print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!i need to update my values")
+					# then this is the neuron of the current machine
+
+					self.count_energy_diff_states(j=index)
+
 
 				print self
 
@@ -170,6 +188,8 @@ class SubTM(TabuMachine):
 		tmp = []
 		tmp.append("<{} ID={}, Size={}>".format(SubTM.__name__,self.ID,self._size))
 		tmp.append("Current state = {}".format(self.currentState))
+		tmp.append("Current global state = {}".format(self.globalCurrentState))
+		tmp.append("tabu list = {}".format(self._tabu_list))
 		tmp.append("W = {}".format(self.myWeights))
 		tmp.append("C = {}".format(self._C))
 		tmp.append("beta = {}".format(self._beta))
@@ -202,24 +222,33 @@ class SubTM(TabuMachine):
 		:param j: index of neuron changed its state
 		:return: void, works only with current state
 		"""
-		assert len(self.currentState) > 0
+		assert len(self.globalCurrentState) > 0
+		assert self.beginIndex >= 0
+		assert self.endIndex > 0
 		if not isInitial:
-			for i in range(self.beginIndex,self.endIndex):
-				print ("My current index is: {}".format(i))
+			for i in range(self.beginIndex,self.endIndex):	# iterate through neurons available
+				# print ("My current index is: {}".format(i))
+				newI = i - self.beginIndex
+				newJ = j - self.beginIndex
+				# print newI
+				# print newJ
+				# print j
+				# print self.myWeights[newI][j]
+				# print self.currentState
+				# print self.currentState[newJ]
 				if i == j:
-					self._diffEi[i] = -self._diffEi[i]
-				elif i != j and self.currentState[i] == 0:
-					self._diffEi[i] += self.myWeights[i][j] * (1 - 2*self.currentState[j])
+					self._diffEi[newI] = -self._diffEi[newI]
+				elif self.currentState[newI] == 0:
+					self._diffEi[newI] += self.myWeights[newI][j] * (1 - 2*self.globalCurrentState[j])
 				else:
-					self._diffEi[i] -= self.myWeights[i][j] * (1 - 2*self.currentState[j])
+					self._diffEi[newI] -= self.myWeights[newI][j] * (1 - 2*self.globalCurrentState[j])
 		else:
 			for j in range(self.beginIndex,self.endIndex):
 				sum = 0
-				for i in range(self.beginIndex,self.endIndex):
-					newI = i - self.beginIndex
+				for i in range(len(self.globalCurrentState)):
 					newJ = j - self.beginIndex
-					sum += self.myWeights[newI][j]*self.currentState[newI]
-				self._diffEi[newJ] = (2 * self.currentState[newJ])*(sum - self.myB)
+					sum += self.myWeights[newJ][i]*self.globalCurrentState[i]
+				self._diffEi[newJ] = (2 * self.globalCurrentState[j] - 1)*(sum - self.myB)
 
 	def count_energy(self,state):
 		assert len(state) == self._size
@@ -227,10 +256,20 @@ class SubTM(TabuMachine):
 		tmp = 0
 		for i in range(self.beginIndex,self.endIndex):
 			newI = i - self.beginIndex
-			for j in range(self.beginIndex,self.endIndex):
-				newJ = j - self.beginIndex
-				tmp += self.myWeights[newI][j]* state [newI] * state [newJ]
-		return tmp - self.myB * sum(state)
+			for j in range(len(self.globalCurrentState)):
+				tmp += self.myWeights[newI][j]* self.globalCurrentState [i] * self.globalCurrentState [j]
+		return -1/2 * self.myA * tmp + self.myB * sum(state)
+
+	def set_global_current_state(self, state):
+		self.globalCurrentState = state
+
+	def initialize_state(self):
+		assert self.globalCurrentState
+		assert self.beginIndex >= 0
+		assert self.endIndex > 0
+
+		self.currentState = self.globalCurrentState[self.beginIndex:self.endIndex]
+
 
 if __name__ == "__main__":
 

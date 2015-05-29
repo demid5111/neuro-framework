@@ -204,7 +204,7 @@ if __name__ == "__main__":
 			print ("Wrong matrix")
 			myCoordinator.kill_machines()
 		# print(myAdjMatrix)
-		myC = 5
+		myC = 10
 
 		TABU_SIZE = int(len(myAdjMatrix) / 2)
 		BETA = TABU_SIZE / len(myAdjMatrix) + 2
@@ -282,6 +282,8 @@ if __name__ == "__main__":
 		numCycles = 0
 		print ("Begin cycling and looking for the solution")
 		while True:
+			print("Begin new cycle. Global minimum: {},\n local minimum: {}"
+				.format(myCoordinator.get_global_minimum_state(),myCoordinator.localMinimumState))
 			numCycles += 1
 			# variable = raw_input("Input anything to continue")
 			print("Step {}.{}. Evaluate neighbours and choose best on each machine".format(numCycles,i))
@@ -297,8 +299,8 @@ if __name__ == "__main__":
 			i += 1
 
 			print("Step {}.{}. Make simple auction and choose best. "
-						"Notify everyone to make them update values and move the neuron to tabu"
-						"Update local, global minimums if needed".format(numCycles,i))
+						"\nNotify everyone to make them update values and move the neuron to tabu"
+						"\nUpdate local, global minimums if needed".format(numCycles,i))
 			index, delta, state = myCoordinator.make_auction()
 			print ("So, the winner is index: {}".format(index))
 			newEnergy = myCoordinator.currentEnergy + delta
@@ -339,8 +341,8 @@ if __name__ == "__main__":
 					output("{}.{} Best energy: value = {}".format(numCycles,i,myCoordinator.get_global_minimum_energy()), isDebug=False)
 					output("{}.{} Max clique size: value = {}"\
 						.format(numCycles,i,myCoordinator.get_clique_size(myCoordinator.get_global_minimum_state())), isDebug=False)
-					output("{}.{} The global minimum state: clique indices: "
-								 .format(numCycles,i) + str(myCoordinator.get_best_clique()),isDebug=False)
+					output("{}.{} The global minimum state:{}\n clique indices: "
+								 .format(numCycles,i,myCoordinator.get_global_minimum_state()) + str(myCoordinator.get_best_clique()),isDebug=False)
 					left = check_clique(vertices=myCoordinator.get_best_clique(),adjMatrix=myAdjMatrix)
 					output("{}.{} Number of edges left: ".format(numCycles,i) + str(left),isDebug=False)
 					break
@@ -390,13 +392,14 @@ if __name__ == "__main__":
 						if myCoordinator.is_network_ready():
 							break
 
-					print("\nAll machines sent their oldest neighbours...")
+					print("\nAll machines jumped to oldest neighbour...")
 					myCoordinator.erase_readiness()
 					i += 1
 			else:
 				print("\n\t Continue local search")
 				# time.sleep(5)
-
+		if myCoordinator.is_lmtp_over():
+			myCoordinator.kill_machines()
 	except Exception, e:
 		myCoordinator.kill_machines()
 		print(traceback.print_exc())

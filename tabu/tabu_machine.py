@@ -84,6 +84,10 @@ class TabuMachine():
 		except AssertionError:
 			output("Energy is negative, value = {}".format(self.currentEnergy),isDebug=True,tabsNum=0)
 
+		if isLocalMin:
+			self.localMinimumEnergy = self.currentEnergy
+			self.localMinimumState = copy(self.currentState)
+
 	def set_tax(self,tax):
 		assert tax >= 0
 		self.currentTax = tax
@@ -191,17 +195,17 @@ class TabuMachine():
 		isChanged = False
 		# TODO: discuss the validity of such approach when checking on the global optimality
 		# if self.currentEnergy < self._globalMinimumEnergy and self.currentTax == 0:
-		if self.currentEnergy < self._globalMinimumEnergy:
+		if  self.currentEnergy < self._globalMinimumEnergy and self.contains_several_vertices(self.currentState):
 			output("\t New global optimum registered: old value = {}, new value = {}, state = {}"\
 					 .format(str(self._globalMinimumEnergy),str(self.currentEnergy),self.getCurrentState()),isDebug=False)
 			self._globalMinimumEnergy = self.currentEnergy
-			self._globalMinimumState = self.currentState
+			self._globalMinimumState = copy(self.currentState)
 			isChanged = True
-		if self.currentEnergy < self.localMinimumEnergy:     #should we update global as well? Now I do it
+		if self.currentEnergy < self.localMinimumEnergy and not self.isAllZeros(self.currentState):     #should we update global as well? Now I do it
 			output("\t New local optimum registered: old value = {}, new value = {}, state = {}"\
 					 .format(self.localMinimumEnergy,self.currentEnergy,self.getCurrentState()),isDebug=False)
 			self.localMinimumEnergy = self.currentEnergy
-			self.localMinimumState = self.localMinimumState
+			self.localMinimumState = copy(self.currentState)
 			self.localMinimumTax = self.currentTax
 			isChanged = True
 		return isChanged
@@ -396,3 +400,14 @@ class TabuMachine():
 			tmpState = copy(self.currentState)
 			tmpState[i] = 1 - tmpState[i]
 			self._taxes[i] = self.count_tax(state=tmpState)
+
+	def isAllZeros(self, currentState):
+		isZeros = True
+		for i in currentState:
+			if i != 0:
+				isZeros = False
+				break
+		return isZeros
+
+	def contains_several_vertices(self, currentState):
+		return True if sum(currentState) > 3 else False

@@ -279,11 +279,12 @@ if __name__ == "__main__":
 		i += 1
 
 
-
+		numCycles = 0
 		print ("Begin cycling and looking for the solution")
 		while True:
+			numCycles += 1
 			# variable = raw_input("Input anything to continue")
-			print("Step {}. Evaluate neighbours and choose best on each machine".format(str(i)))
+			print("Step {}.{}. Evaluate neighbours and choose best on each machine".format(numCycles,i))
 			message = pack_msg_json(level=Message.calculate_deltas)
 			myCoordinator.send_message(message=message)
 			while True:
@@ -295,9 +296,9 @@ if __name__ == "__main__":
 			myCoordinator.erase_readiness()
 			i += 1
 
-			print("Step {}. Make simple auction and choose best. "
+			print("Step {}.{}. Make simple auction and choose best. "
 						"Notify everyone to make them update values and move the neuron to tabu"
-						"Update local, global minimums if needed".format(str(i)))
+						"Update local, global minimums if needed".format(numCycles,i))
 			index, delta, state = myCoordinator.make_auction()
 			print ("So, the winner is index: {}".format(index))
 			newEnergy = myCoordinator.currentEnergy + delta
@@ -325,8 +326,7 @@ if __name__ == "__main__":
 			i += 1
 
 
-			output(message="Step {}. Update k,c, Update energies. Check if smtp either lmtp to continue "\
-				.format(str(i)), isDebug=True,tabsNum=1)
+			print("Step {}.{}. Update k,c, Update energies. Check if smtp either lmtp to continue ".format(numCycles,i))
 			myCoordinator.increment_k()
 			if myCoordinator.check_for_energy_tax_update():
 				myCoordinator.erase_h()
@@ -334,20 +334,21 @@ if __name__ == "__main__":
 				myCoordinator.increment_h()
 			if myCoordinator.is_smtp_over():
 				if myCoordinator.is_lmtp_over():
-					output("Global search is over. Get out best solution (global minimum) found so far", isDebug=False, tabsNum=1)
-					output("Best energy: value = {}".format(myCoordinator.get_global_minimum_energy()), isDebug=False)
-					output("Max clique size: value = {}"\
-						.format(myCoordinator.get_clique_size(myCoordinator.get_global_minimum_state())), isDebug=False)
-					output("The global minimum state: clique indices: " + str(myCoordinator.get_best_clique()),isDebug=False)
+					output("{}.{} Global search is over. Get out best solution (global minimum) found so far"
+								 .format(numCycles,i), isDebug=False, tabsNum=1)
+					output("{}.{} Best energy: value = {}".format(numCycles,i,myCoordinator.get_global_minimum_energy()), isDebug=False)
+					output("{}.{} Max clique size: value = {}"\
+						.format(numCycles,i,myCoordinator.get_clique_size(myCoordinator.get_global_minimum_state())), isDebug=False)
+					output("{}.{} The global minimum state: clique indices: "
+								 .format(numCycles,i) + str(myCoordinator.get_best_clique()),isDebug=False)
 					left = check_clique(vertices=myCoordinator.get_best_clique(),adjMatrix=myAdjMatrix)
-					output("Number of edges left: " + str(left),isDebug=False)
-					# TODO: add break when implemented cycling
-					# break
+					output("{}.{} Number of edges left: ".format(numCycles,i) + str(left),isDebug=False)
+					break
 				else:
-					output("\t Local search is over. Need to move far away from here. c = {}, C = {}"\
-								 .format(myCoordinator.get_c(),myCoordinator.get_C()),isDebug=False,tabsNum=1)
+					output("\t {}.{} Local search is over. Need to move far away from here. c = {}, C = {}"\
+								 .format(numCycles,i,myCoordinator.get_c(),myCoordinator.get_C()),isDebug=False,tabsNum=1)
 					index = myCoordinator.get_oldest_neuron()
-					print ("Step {}. Get oldest neuron and values for it".format(i))
+					print ("Step {}.{}. Get oldest neuron and values for it".format(numCycles,i))
 					data = {}
 					data[Constants.message_key] = Message.get_oldest_neuron
 					message = pack_msg_json(level=Message.get_oldest_neuron)
@@ -361,9 +362,9 @@ if __name__ == "__main__":
 					myCoordinator.erase_readiness()
 					i += 1
 
-					print("Step {}. Make simple auction and choose best. "
+					print("Step {}.{}. Make simple auction and choose best. "
 						"Notify everyone to make them update values and move the neuron to tabu"
-						"Update local, global minimums if needed".format(str(i)))
+						"Update local, global minimums if needed".format(numCycles,i))
 					index, delta, state = myCoordinator.make_auction()
 					newEnergy = myCoordinator.currentEnergy + delta
 					myCoordinator.set_energy(newEnergy)

@@ -192,14 +192,14 @@ class TabuMachine():
 		# TODO: discuss the validity of such approach when checking on the global optimality
 		# if self.currentEnergy < self._globalMinimumEnergy and self.currentTax == 0:
 		if self.currentEnergy < self._globalMinimumEnergy:
-			output("\t New global optimum registered: old value = {}, new value = {}"\
-					 .format(str(self._globalMinimumEnergy),str(self.currentEnergy)),isDebug=False)
+			output("\t New global optimum registered: old value = {}, new value = {}, state = {}"\
+					 .format(str(self._globalMinimumEnergy),str(self.currentEnergy),self.getCurrentState()),isDebug=False)
 			self._globalMinimumEnergy = self.currentEnergy
 			self._globalMinimumState = self.currentState
 			isChanged = True
 		if self.currentEnergy < self.localMinimumEnergy:     #should we update global as well? Now I do it
-			output("\t New local optimum registered: old value = {}, new value = {}"\
-					 .format(str(self.localMinimumEnergy),str(self.currentEnergy)),isDebug=False)
+			output("\t New local optimum registered: old value = {}, new value = {}, state = {}"\
+					 .format(self.localMinimumEnergy,self.currentEnergy,self.getCurrentState()),isDebug=False)
 			self.localMinimumEnergy = self.currentEnergy
 			self.localMinimumState = self.localMinimumState
 			self.localMinimumTax = self.currentTax

@@ -1,13 +1,22 @@
+_author__ = 'Demidovskij Alexander'
+__copyright__ = "Copyright 2015, The Neuro-Framework Project"
+__license__ = "GPL"
+__version__ = "1.0.1"
+__email__ = "monadv@yandex.ru"
+__status__ = "Development"
+
+"""
+Basic class for TM and DTM. Contains all primitives for calculating, processing and analyzing
+the graph instance according to specific rules
+"""
+
 from copy import copy
 import random
 from math import exp
-import warnings
 from operator import itemgetter
 
 from service_functions import output
 
-
-__author__ = 'demid5111'
 
 class TabuMachine():
 	def __init__(self):
@@ -113,11 +122,11 @@ class TabuMachine():
 
 	def get_c(self):
 		return self._c
-	#############################################################################
-	# Getters and setters (Finish)
-	#############################################################################
 
-	def changeCurrentState(self,indexToChange):
+	def increment_c(self):
+		self._c += 1
+
+	def change_current_state(self,indexToChange):
 		self.currentState[indexToChange] = 1 - self.currentState[indexToChange]
 
 	def initialize_state(self):
@@ -128,23 +137,40 @@ class TabuMachine():
 		assert self._size > 0
 		self._tabu_list = [float("inf") for i in range(self._size)]
 
-	def fillWeightMatrix(self,adjMatrix):
+	#############################################################################
+	# Getters and setters (Finish)
+	#############################################################################
+
+
+
+	def fill_weight_matrix(self,adjMatrix):
+		"""
+		Fills weight matrix by the HNN formula
+		:param adjMatrix:
+		"""
 		assert len(adjMatrix[0]) == self._size
-		# output("Adjacency matrix:",isDebug=True)
-		# print_matrix(adjMatrix)
-		# return
-		self.myWeights = self.initZeroMatrix(self._size,self._size)
+		self.myWeights = self.init_zero_matrix(self._size,self._size)
 		for i in range(0,self._size):
 			for j in range(0,self._size):
 				#TODO: decide whether to use -2 * A as multiplier or not
 				self.myWeights[i][j] = -2 * self.myA * (1 - adjMatrix[i][j])*(1-self.kron(i,j))
-		# output("Weight matrix:",isDebug=True)
-		# print_matrix(self.myWeights)
 
 	def kron(self,i,j):
+		"""
+		kroneker function
+		:param i:
+		:param j:
+		:return:
+		"""
 		return 1 if i == j else 0
 
-	def initZeroMatrix(self,rows,cols):
+	def init_zero_matrix(self,rows,cols):
+		"""
+		Creates the zero matrix of the given size
+		:param rows:
+		:param cols:
+		:return:
+		"""
 		tmpMatrix = []
 		for i in range(rows):
 			tmp = [0 for j in range(cols)]
@@ -152,6 +178,12 @@ class TabuMachine():
 		return tmpMatrix
 
 	def count_energy(self,state):
+		"""
+		Calculates full energy for the given state
+
+		:param state: current state
+		:return: energy value
+		"""
 		assert len(state) == self._size
 
 		tmp = 0
@@ -161,6 +193,12 @@ class TabuMachine():
 		return tmp - self.myB * sum(state)
 
 	def count_tax(self,state):
+		"""
+		Calculates punishment function for the given state
+
+		:param state:
+		:return: value of the punishment function for the given state
+		"""
 		assert len(state) == self._size
 		actives = []		#contains indices of elements
 		taxes = []
@@ -183,6 +221,12 @@ class TabuMachine():
 		return sum(taxes)
 
 	def count_tax_neuron(self,quantity):
+		"""
+		Calculates punishment for the given neuron
+
+		:param quantity: number of edges missed
+		:return: value of the punishment function
+		"""
 		assert quantity > 0
 		if quantity == 1:
 			return self.__smallPunishment
@@ -192,6 +236,10 @@ class TabuMachine():
 			return self.__alpha*exp(quantity)
 
 	def check_for_energy_tax_update(self):
+		"""
+		Check if the update of global and local optimums is needed and update  if so
+		:return: boolean (if values were changed)
+		"""
 		isChanged = False
 		# TODO: discuss the validity of such approach when checking on the global optimality
 		# if self.currentEnergy < self._globalMinimumEnergy and self.currentTax == 0:
@@ -210,8 +258,12 @@ class TabuMachine():
 			isChanged = True
 		return isChanged
 
-	def countNeighbourhoodStates(self,state):
-		self.deprecation("DEPRECATED - countNeighbourhoodStates")
+	def count_neighbourhood_states(self,state):
+		"""
+		Calculates the energies and taxes for neighbours
+		:param state:
+		:return: list of energies and taxes
+		"""
 		assert len(state) > 0
 		energies = [float("inf") for i in range (self._size)]
 		taxes = [float("inf") for i in range (self._size)]
@@ -225,7 +277,8 @@ class TabuMachine():
 		return energies,taxes
 
 	def count_energy_diff_states(self,j=-1,isInitial=False):
-		""" Recalculates energies possible changes
+		"""
+		Recalculates energies possible changes
 		:param j: index of neuron changed its state
 		:return: void, works only with current state
 		"""
@@ -246,7 +299,12 @@ class TabuMachine():
 				self._diffEi[j] = (2 * self.currentState[j] - 1)*(sum - self.myB)
 
 	def choose_best_neighbour(self):#,energies,taxes):
-		rejected = []     #list of prohibited indexes which are rejected because of tabu and energy
+		"""
+		Chooses the best neighbour by two criteria: energy and punishment
+
+		:return: index of the best neuron
+		"""
+		rejected = []     # list of prohibited indexes which are rejected because of tabu and energy
 		nIndex = -1
 		while(True):
 			nIndex = self._find_absolute_best(rejected=rejected)		#index of best neighbor
@@ -267,6 +325,10 @@ class TabuMachine():
 		return nIndex
 
 	def choose_best_neighbour_simple(self):
+		"""
+		Chooses best neighbour only by the energy function
+		:return: the index of the best neighbour
+		"""
 		rejected = set([])     #list of prohibited indexes which are rejected because of tabu and energy
 		nIndex = -1
 		while(True):
@@ -283,8 +345,13 @@ class TabuMachine():
 		# output("Neuron is found",isDebug=True)
 		return nIndex
 
-	def _find_min_diff (self, rejected):
+	def _find_min_diff(self, rejected):
 		# TODO: optimize search for a minimum
+		"""
+		Find the minimum function difference among all neighbours
+		:param rejected: list of already processed vertices
+		:return: the index of the neighbour
+		"""
 		indexes = [i for i in range(self._size) if i not in rejected]
 		vector = copy(self._diffEi)
 		for i in sorted(rejected,reverse=True):
@@ -292,7 +359,8 @@ class TabuMachine():
 		return min(zip(indexes,vector), key=itemgetter(1))[0]
 
 	def _find_absolute_best(self,rejected):
-		""" Check if there is the minimum for both criteria: the lowest energy and the lowest tax
+		"""
+		Check if there is the minimum for both criteria: the lowest energy and the lowest tax
 		:rtype : the index of the best minimum neighbour
 		"""
 		myBest = -1
@@ -310,6 +378,11 @@ class TabuMachine():
 
 
 	def _find_pareto_frontier(self,rejected):
+		"""
+		Finds the best neuron by two criteria: energy function and punishment function
+		:param rejected: the list of already processed vertices in this iteration
+		:return: index of the best neuron
+		"""
 		indexes = [i for i in range(self._size)]
 		mylist = sorted([[self._diffEi[i],self._taxes[i],indexes[i]] for i in range(len(self._diffEi))],reverse=False)	#find pareto frontier
 		p_front = [mylist[0]]
@@ -319,7 +392,7 @@ class TabuMachine():
 				p_front.append(pair)
 		assert  len(p_front) > 0
 		p_index = -1
-		while(True):
+		while True:
 			p_index = random.randint(0,len(p_front)-1)
 			if p_index in rejected:
 				continue
@@ -328,10 +401,9 @@ class TabuMachine():
 		assert p_index != -1
 		assert p_front[p_index]
 		nIndex = p_front[p_index][2]
-		#TODO: check if bug is fixed: wrong collection of the index - not random!!
 		return nIndex
 
-	def moveNeuronToTabu(self,index):
+	def move_neuron_to_tabu(self,index):
 		assert self.check_tabu_list
 		self._tabu_list[index] = self._k
 
@@ -354,8 +426,10 @@ class TabuMachine():
 		return False
 
 	def get_oldest_neuron(self):
-		"""find the neuron in the tabu list who remains unchanged more than others
-		:rtype: index of that neuron"""
+		"""
+		find the neuron in the tabu list who remains unchanged more than others
+		:return: index of that neuron
+		"""
 		assert self.check_tabu_list
 		if (float("inf") in self._tabu_list):
 			return self._tabu_list.index(float("inf"))
@@ -363,6 +437,10 @@ class TabuMachine():
 		return self._tabu_list.index(numIter)
 
 	def check_tabu_list(self):
+		"""
+		Common test on the tabu list
+		:return: boolean
+		"""
 		return len(self._tabu_list) > 0 and len(self._tabu_list) == self._size
 
 	def is_tabu(self, index):
@@ -375,6 +453,11 @@ class TabuMachine():
 		return False
 
 	def aspiration_criteria_satisfied(self,index):
+		"""
+		Checks if aspiration criteria is satisfied
+		:param index: neuron whose state to be changed
+		:return: boolean
+		"""
 		newEnergy = self.currentEnergy + self._diffEi[index]#self.count_energy(state)
 		# newTax = self._taxes[index]#self.count_tax(state=state)
 		tmpState = copy(self.currentState)
@@ -386,22 +469,32 @@ class TabuMachine():
 			return True
 		return False
 
-	def increment_c(self):
-		self._c += 1
+
 	
 	def get_best_clique(self):
+		"""
+		As clique is active neurons (with state 1), so calculates the sum of elements as the clique
+		size
+		:return: size of the clique found
+		"""
 		return [i+1 for i in range(self._size) if self._globalMinimumState[i] == 1]
 
-	def deprecation(self,message):
-		warnings.warn(message,DeprecationWarning)
 
 	def count_taxes(self):
+		"""
+			Recalculates taxes for every neighbourhood state
+		"""
 		for i in range (self._size):
 			tmpState = copy(self.currentState)
 			tmpState[i] = 1 - tmpState[i]
 			self._taxes[i] = self.count_tax(state=tmpState)
 
 	def isAllZeros(self, currentState):
+		"""
+		Checks if the given list contains only 0
+		:param currentState:
+		:return: boolean
+		"""
 		isZeros = True
 		for i in currentState:
 			if i != 0:
@@ -410,4 +503,9 @@ class TabuMachine():
 		return isZeros
 
 	def contains_several_vertices(self, currentState):
+		"""
+		Calculates if the best state contains cliques of size more than 3
+		:param currentState:
+		:return: boolean
+		"""
 		return True if sum(currentState) > 3 else False

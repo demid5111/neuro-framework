@@ -87,3 +87,13 @@ def check_clique(vertices, adjMatrix):
 def pack_msg_json(level=Level.info, body={}):
 		body[Constants.message_key] = level
 		return json.dumps(body)
+
+def check_symmetry(myAdjMatrix):
+	isSymmetric = True
+	for i in range(len(myAdjMatrix)):
+		for j in range(len(myAdjMatrix)):
+			if j >= i:
+				if myAdjMatrix[i][j] != myAdjMatrix[j][i]:
+					isSymmetric = False
+					break
+	return isSymmetric

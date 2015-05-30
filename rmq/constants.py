@@ -1,4 +1,13 @@
-__author__ = 'Administrator'
+_author__ = 'Demidovskij Alexander'
+__copyright__ = "Copyright 2015, The Neuro-Framework Project"
+__license__ = "GPL"
+__version__ = "1.0.1"
+__email__ = "monadv@yandex.ru"
+__status__ = "Development"
+
+"""
+Special constants for messaging.
+"""
 
 
 

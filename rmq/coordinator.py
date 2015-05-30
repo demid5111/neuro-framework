@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
+_author__ = 'Demidovskij Alexander'
+__copyright__ = "Copyright 2015, The Neuro-Framework Project"
+__license__ = "GPL"
+__version__ = "1.0.1"
+__email__ = "monadv@yandex.ru"
+__status__ = "Development"
+
+"""
+Coordination agent for the DTM.
+It is also derived from the basic TM class for being able to store global information
+"""
+
+
 import json
 import os
 from subprocess import call
@@ -11,7 +25,7 @@ import sys
 import pika
 
 from constants import Constants, Message, Level, Field
-from service_functions import output, readCliqueInAdjMatrix, pack_msg_json, check_clique
+from service_functions import output, readCliqueInAdjMatrix, pack_msg_json, check_clique, check_symmetry
 from tabu.tabu_machine import TabuMachine
 
 
@@ -49,6 +63,14 @@ class Coordinator(TabuMachine):
 		self.distribution = []  # distribution[i] is the number of the neurons on the ith machine
 
 	def receive_message(self, ch, method, properties, body):
+		"""
+		Standard interface for the pika module for the agent to get messages
+		:param ch:
+		:param method:
+		:param properties:
+		:param body:
+		:return:
+		"""
 		sender_id = int(method.routing_key.split('.')[0])
 
 		try:
@@ -97,6 +119,14 @@ class Coordinator(TabuMachine):
 
 
 	def send_message(self, message):
+		"""
+		Standard interface for the pika module for the agent to send messages
+		:param ch:
+		:param method:
+		:param properties:
+		:param body:
+		:return:
+		"""
 		self.channel.exchange_declare(exchange=Constants.fanoutExchangeFromAdmin,
 																	type='fanout')
 		print("[*] Sending Task: " + message)
@@ -107,6 +137,9 @@ class Coordinator(TabuMachine):
 															 body=message)
 
 	def receive_messages(self):
+		"""
+		Starts listening, the agent subscribes to the direct exchange
+		"""
 		print("[*] Waiting for messages...")
 
 		self.channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
@@ -120,16 +153,29 @@ class Coordinator(TabuMachine):
 
 
 	def start_listener(self):
+		"""
+		Creates special thread to listen to messages from other agents
+		As it receives and sends messages asynchronously, it  can be performed in different thread only.
+				"""
 		self.receiver_thread = threading.Thread(target=self.receive_messages)
 		self.receiver_thread.start()
 		self.receiver_thread.join(0)
 
 	def create_machines(self, number):
+		"""
+		Creates subTMs
+		:param number: number of subTMs to create
+		"""
 		dir = os.path.dirname(os.path.realpath(__file__))
 		for i in range(number):
 			call("start cmd /K C:\Python27\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
 
 	def kill_machines(self, me_also=False):
+		"""
+		Makes other agents stop working  either at the end of calculation
+		or when some error in coordinator occured
+		:param me_also:
+		"""
 		self.send_message(message=Message.kill_everyone)
 		if me_also:
 			os._exit(1)
@@ -148,6 +194,10 @@ class Coordinator(TabuMachine):
 				self.distribution[i] = n1
 
 	def is_network_ready(self):
+		"""
+		Checks if every machine in network has completed a task
+		:return:
+		"""
 		isReady = True
 		for i in self.readiness:
 			if not i:
@@ -166,19 +216,15 @@ class Coordinator(TabuMachine):
 		self.neighbourhood_options = [() for i in range(self.AVAILABLE_MACHINES)]
 
 	def make_auction(self):
+		"""
+		Get the element with the lowest value from the list of tuples by the secong element in it
+		:return: index of the element
+		"""
 		res = sorted(self.neighbourhood_options, key=lambda tup: tup[1])  # get the lowest
 		return res[0]  # tuple is (index,deltas,state)
 
 
-def check_symmetry(myAdjMatrix):
-	isSymmetric = True
-	for i in range(len(myAdjMatrix)):
-		for j in range(len(myAdjMatrix)):
-			if j >= i:
-				if myAdjMatrix[i][j] != myAdjMatrix[j][i]:
-					isSymmetric = False
-					break
-	return isSymmetric
+
 
 
 if __name__ == "__main__":
@@ -203,7 +249,6 @@ if __name__ == "__main__":
 		if not isSymmetric:
 			print ("Wrong matrix")
 			myCoordinator.kill_machines()
-		# print(myAdjMatrix)
 		myC = 10
 
 		TABU_SIZE = int(len(myAdjMatrix) / 2)
@@ -240,7 +285,7 @@ if __name__ == "__main__":
 		i += 1
 
 		output(message="Step {}. Fill weight matrix".format(str(i)), isDebug=True)
-		myCoordinator.fillWeightMatrix(myAdjMatrix)
+		myCoordinator.fill_weight_matrix(myAdjMatrix)
 		i += 1
 		output(message="Step {}. Initialize Tabu-machines: slice matrix, slice state, k,c,neurons states, tabu lists"
 					 .format(str(i)), isDebug=True)
@@ -305,8 +350,8 @@ if __name__ == "__main__":
 			print ("So, the winner is index: {}".format(index))
 			newEnergy = myCoordinator.currentEnergy + delta
 			myCoordinator.set_energy(newEnergy)
-			myCoordinator.moveNeuronToTabu(index=index)
-			myCoordinator.changeCurrentState(indexToChange=index)
+			myCoordinator.move_neuron_to_tabu(index=index)
+			myCoordinator.change_current_state(indexToChange=index)
 			data = {}
 			data[Constants.message_key] = Message.global_best_neighbour
 			data[Constants.body] = {}
@@ -370,8 +415,8 @@ if __name__ == "__main__":
 					index, delta, state = myCoordinator.make_auction()
 					newEnergy = myCoordinator.currentEnergy + delta
 					myCoordinator.set_energy(newEnergy)
-					myCoordinator.moveNeuronToTabu(index=index)
-					myCoordinator.changeCurrentState(indexToChange=index)
+					myCoordinator.move_neuron_to_tabu(index=index)
+					myCoordinator.change_current_state(indexToChange=index)
 					myCoordinator.update_energy(index=index,isLocalMin=True)
 					myCoordinator.increment_c()
 					myCoordinator.erase_h()
@@ -397,7 +442,6 @@ if __name__ == "__main__":
 					i += 1
 			else:
 				print("\n\t Continue local search")
-				# time.sleep(5)
 		if myCoordinator.is_lmtp_over():
 			myCoordinator.kill_machines()
 	except Exception, e:

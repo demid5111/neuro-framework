@@ -1,4 +1,16 @@
 #!/usr/bin/env python
+
+_author__ = 'Demidovskij Alexander'
+__copyright__ = "Copyright 2015, The Neuro-Framework Project"
+__license__ = "GPL"
+__version__ = "1.0.1"
+__email__ = "monadv@yandex.ru"
+__status__ = "Development"
+
+"""
+Special adaptation of TM for the distributed mode.
+"""
+
 from copy import copy
 import json
 import sys
@@ -39,14 +51,21 @@ class SubTM(TabuMachine):
 
 	def receive_message (self, ch, method, properties, body):
 
+		"""
+		Standard interface for the pika module for the agent to get messages
+		:param ch:
+		:param method:
+		:param properties:
+		:param body:
+		:return:
+		"""
 		if "admin" in body:
 			print "Hey, Admin!"
-		# else:
-		# 	print "[x] {}".format(body)
+
 		try:
 			data = json.loads(body)
 			#then it is the switch by the message
-			if data[Constants.message_key] == Message.initializing:
+			if data[Constants.message_key] == Message.initializing:		# initializing with weights and states
 				print "Begin initialization..."
 				self.setC(data[Constants.body][Field.myC])
 				self.setSize(data[Constants.body][Field.mySizeVec][self.ID])
@@ -59,8 +78,6 @@ class SubTM(TabuMachine):
 				self.initialize_state()
 
 				self.set_weight_matrix(weight_matrix=data[Constants.body][Field.myW])
-
-				print self
 				data = {}
 				data[Constants.body] = {}
 				data[Constants.body][Field.myCurrentState] = self.getCurrentState()
@@ -124,10 +141,10 @@ class SubTM(TabuMachine):
 
 				if newJ >= 0:
 					newJ = index - self.beginIndex
-					self.changeCurrentState(indexToChange=newJ)
+					self.change_current_state(indexToChange=newJ)
 
-					self.moveNeuronToTabu(index=newJ)
-				self.globalCurrentState = data[Constants.body][Field.myCurrentState]
+					self.move_neuron_to_tabu(index=newJ)
+				# self.globalCurrentState = data[Constants.body][Field.myCurrentState]
 
 				if isUpdateNeeded:
 					print ("Updating values...")
@@ -169,8 +186,12 @@ class SubTM(TabuMachine):
 			else:
 				self.send_message(message="Got it! TODO: " + body,routing_key=Message.initializing)
 
-	def send_message (self,message,routing_key):
-
+	def send_message(self,message,routing_key):
+		"""
+		Standard Rabbit MQ interface for sending the message
+		:param message:
+		:param routing_key:
+		"""
 		print "[*] Sending Task: " + message
 
 		self.channel.exchange_declare(exchange=Constants.directExchangeToAdmin,
@@ -183,7 +204,10 @@ class SubTM(TabuMachine):
 
 
 	def begin_listen(self,queue_name):
-
+		"""
+		Makes this instance (agent) listen to the messages from the broker
+		:param queue_name:
+		"""
 		self.channel.exchange_declare(exchange=Constants.fanoutExchangeFromAdmin,
 														 type='fanout')
 		self.channel.queue_bind(exchange=Constants.fanoutExchangeFromAdmin, queue=self.queue_name,
@@ -214,17 +238,29 @@ class SubTM(TabuMachine):
 		return res
 
 	def set_distribution_vec(self, vec):
+		"""
+		Copies the the vector with the distributions of neurons among all agents ia a system
+		:param vec:
+		"""
 		self.distribution = copy(vec)
 
 	def set_weight_matrix(self,weight_matrix):
+		"""
+		Slice matrix and get only the part with corresponding neurons
+		:param weight_matrix:
+		"""
 		assert self.beginIndex >= 0
 		assert self.endIndex > 0
 		self.myWeights = []
 
 		for i in range(self.beginIndex,self.endIndex):
-			self.myWeights.append(weight_matrix[i])
+			self.myWeights.append(copy(weight_matrix[i]))
 
 	def calculate_index_bounds(self):
+		"""
+		Calculates bounds which represent real values of neurons numbers being owned
+		by this agent
+		"""
 		self.beginIndex = 0
 		if self.ID != 0:
 			self.beginIndex = sum(self.distribution[:self.ID])
@@ -264,6 +300,11 @@ class SubTM(TabuMachine):
 				self._diffEi[newJ] = (2 * self.globalCurrentState[j] - 1)*(sum - self.myB)
 
 	def count_energy(self,state):
+		"""
+		Counts the piece of the energy only for owned neurons
+		:param state:
+		:return: the value of the energy function for this agent (node)
+		"""
 		assert len(state) == self._size
 
 		tmp = 0
@@ -277,11 +318,14 @@ class SubTM(TabuMachine):
 		self.globalCurrentState = state
 
 	def initialize_state(self):
+		"""
+		Assignes states for the owned neurons from the global initial messaging list
+		"""
 		assert self.globalCurrentState
 		assert self.beginIndex >= 0
 		assert self.endIndex > 0
 
-		self.currentState = self.globalCurrentState[self.beginIndex:self.endIndex]
+		self.currentState = copy(self.globalCurrentState[self.beginIndex:self.endIndex])
 
 
 if __name__ == "__main__":

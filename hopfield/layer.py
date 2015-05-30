@@ -1,5 +1,7 @@
 from math import exp
-from service_functions import makeRandomMatrix, output
+
+from service_functions import make_random_matrix, output
+
 
 __author__ = 'demidovs'
 
@@ -15,7 +17,7 @@ class Layer():
             .format(self.__class__.__name__,str(self.size))
 
   def initWeights(self):
-    self.weightMatrix = makeRandomMatrix(self.size,self.size)
+    self.weightMatrix = make_random_matrix(self.size,self.size)
 
   def getAxon(self):
     return self.axon

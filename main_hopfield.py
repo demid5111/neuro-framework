@@ -1,7 +1,7 @@
 import os
 
 from hopfield.dhnn import HNN
-from service_functions import output, readCliqueInAdjMatrix
+from service_functions import output, read_clique_in_matrix
 
 
 __author__ = 'demidovs'
@@ -12,7 +12,7 @@ if __name__ == "__main__":
   MY_A = 10
   MY_B = 10
   current_working_directory = os.getcwd()
-  adjMatrix = readCliqueInAdjMatrix(os.path.join(current_working_directory,"data","C125.9.clq"))
+  adjMatrix = read_clique_in_matrix(os.path.join(current_working_directory,"data","C125.9.clq"))
   output("Matrix read: size={}".format(len(adjMatrix)))
   LAYER_SIZE = len(adjMatrix)
   myNetwork = HNN(A=MY_A,B=MY_B)

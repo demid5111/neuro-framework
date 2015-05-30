@@ -7,7 +7,7 @@ __status__ = "Development"
 """ The main module for launching the TM. No special arguments are needed
 """
 
-from service_functions import output, readCliqueInAdjMatrix, check_clique
+from service_functions import output, read_clique_in_matrix, check_clique
 from tabu.tabu_machine import TabuMachine
 
 
@@ -21,7 +21,7 @@ if __name__ == "__main__":
 	i = 0
 	i += 1
 	output(message="Step {}. Read clique from file {}".format(str(i),fileName),isDebug=True)
-	myAdjMatrix = readCliqueInAdjMatrix(fileName)
+	myAdjMatrix = read_clique_in_matrix(fileName)
 	myC = 5
 
 	TABU_SIZE = int(len(myAdjMatrix)/2)

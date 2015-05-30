@@ -25,7 +25,7 @@ import sys
 import pika
 
 from constants import Constants, Message, Level, Field
-from service_functions import output, readCliqueInAdjMatrix, pack_msg_json, check_clique, check_symmetry
+from service_functions import output, read_clique_in_matrix, pack_msg_json, check_clique, check_symmetry
 from tabu.tabu_machine import TabuMachine
 
 
@@ -244,7 +244,7 @@ if __name__ == "__main__":
 		i = 0
 		i += 1
 		output(message="Step {}. Read clique from file {}".format(str(i), fileName), isDebug=True)
-		myAdjMatrix = readCliqueInAdjMatrix(fileName)
+		myAdjMatrix = read_clique_in_matrix(fileName)
 		isSymmetric = check_symmetry(myAdjMatrix)
 		if not isSymmetric:
 			print ("Wrong matrix")

@@ -25,7 +25,7 @@ import sys
 import pika
 
 from constants import Constants, Message, Level, Field
-from service_functions import output, read_clique_in_matrix, pack_msg_json, check_clique, check_symmetry
+from service_functions import output, read_clique_in_matrix, pack_msg_json, check_clique, check_symmetry, print_matrix
 from tabu.tabu_machine import TabuMachine
 
 
@@ -147,7 +147,7 @@ class Coordinator(TabuMachine):
 		self.channel.queue_bind(exchange=Constants.directExchangeToAdmin, queue=self.queue_name,
 														routing_key=Constants.key_all_messages)
 
-		self.channel.basic_consume(self.receive_message, queue=self.queue_name, no_ack=False)
+		self.channel.basic_consume(self.receive_message, queue=self.queue_name, no_ack=True)
 
 		self.channel.start_consuming()
 
@@ -168,7 +168,8 @@ class Coordinator(TabuMachine):
 		"""
 		dir = os.path.dirname(os.path.realpath(__file__))
 		for i in range(number):
-			call("start cmd /K C:\Python27\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
+			# call("start cmd /K C:\Python27\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
+			call("start cmd /K C:\ActivePython\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
 
 	def kill_machines(self, me_also=False):
 		"""
@@ -231,7 +232,7 @@ if __name__ == "__main__":
 	myCoordinator = None
 
 	try:
-		myCoordinator = Coordinator(3)
+		myCoordinator = Coordinator(1)
 
 		time.sleep(0.2)
 
@@ -245,6 +246,7 @@ if __name__ == "__main__":
 		i += 1
 		output(message="Step {}. Read clique from file {}".format(str(i), fileName), isDebug=True)
 		myAdjMatrix = read_clique_in_matrix(fileName)
+		print_matrix(myAdjMatrix)
 		isSymmetric = check_symmetry(myAdjMatrix)
 		if not isSymmetric:
 			print ("Wrong matrix")
@@ -330,7 +332,7 @@ if __name__ == "__main__":
 			print("Begin new cycle. Global minimum: {},\n local minimum: {}"
 				.format(myCoordinator.get_global_minimum_state(),myCoordinator.localMinimumState))
 			numCycles += 1
-			# variable = raw_input("Input anything to continue")
+			variable = raw_input("Input anything to continue")
 			print("Step {}.{}. Evaluate neighbours and choose best on each machine".format(numCycles,i))
 			message = pack_msg_json(level=Message.calculate_deltas)
 			myCoordinator.send_message(message=message)

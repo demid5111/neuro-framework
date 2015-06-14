@@ -152,8 +152,8 @@ class TabuMachine():
 		self.myWeights = self.init_zero_matrix(self._size,self._size)
 		for i in range(0,self._size):
 			for j in range(0,self._size):
-				#TODO: decide whether to use -2 * A as multiplier or not
-				self.myWeights[i][j] = -2 * self.myA * (1 - adjMatrix[i][j])*(1-self.kron(i,j))
+				# TODO: change for plain tabu-machine if needed (-A to move to high level function)
+				self.myWeights[i][j] = 2 *  (1 - adjMatrix[i][j])*(1-self.kron(i,j))
 
 	def kron(self,i,j):
 		"""

@@ -312,7 +312,8 @@ class SubTM(TabuMachine):
 			newI = i - self.beginIndex
 			for j in range(len(self.globalCurrentState)):
 				tmp += self.myWeights[newI][j]* self.globalCurrentState [i] * self.globalCurrentState [j]
-		return -1/2 * self.myA * tmp + self.myB * sum(state)
+		print ("My state is: " + str(state[self.begin_index:self.endIndex]))
+		return -1/2 * self.myA * tmp + self.myB * sum(state[self.begin_index:self.endIndex])
 
 	def set_global_current_state(self, state):
 		self.globalCurrentState = state

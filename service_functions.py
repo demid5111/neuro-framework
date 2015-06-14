@@ -83,7 +83,7 @@ def read_clique_in_matrix(fileName):
 	current_working_directory = os.getcwd()
 	isRoot = False
 	for i in os.listdir(current_working_directory):
-		if os.path.isdir(i):
+		if os.path.isdir(i) and i != "__pycache__":
 			isRoot = True
 			break
 	if isRoot:

@@ -168,8 +168,8 @@ class Coordinator(TabuMachine):
 		"""
 		dir = os.path.dirname(os.path.realpath(__file__))
 		for i in range(number):
-			# call("start cmd /K C:\Python27\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
-			call("start cmd /K C:\ActivePython\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
+			call("start cmd /K C:\Python27\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
+			# call("start cmd /K C:\ActivePython\python.exe sub_tm.py {}".format(i), cwd=dir, shell=True)
 
 	def kill_machines(self, me_also=False):
 		"""
@@ -232,7 +232,7 @@ if __name__ == "__main__":
 	myCoordinator = None
 
 	try:
-		myCoordinator = Coordinator(1)
+		myCoordinator = Coordinator(3)
 
 		time.sleep(0.2)
 
@@ -332,7 +332,7 @@ if __name__ == "__main__":
 			print("Begin new cycle. Global minimum: {},\n local minimum: {}"
 				.format(myCoordinator.get_global_minimum_state(),myCoordinator.localMinimumState))
 			numCycles += 1
-			variable = raw_input("Input anything to continue")
+			# variable = raw_input("Input anything to continue")
 			print("Step {}.{}. Evaluate neighbours and choose best on each machine".format(numCycles,i))
 			message = pack_msg_json(level=Message.calculate_deltas)
 			myCoordinator.send_message(message=message)
@@ -359,7 +359,7 @@ if __name__ == "__main__":
 			data[Constants.body] = {}
 			data[Constants.body][Field.myChangedNeuron] = index
 			data[Constants.body][Field.myChangedDelta] = delta
-			data[Constants.body][Field.myChangedState] = state
+			# data[Constants.body][Field.myChangedState] = state
 			data[Constants.body][Field.myCurrentState] = myCoordinator.getCurrentState()
 			data[Constants.body][Field.myCurrentEnergy] = newEnergy
 			message = pack_msg_json(level=Message.global_best_neighbour,body=data)

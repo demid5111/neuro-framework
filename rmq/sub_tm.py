@@ -107,6 +107,7 @@ class SubTM(TabuMachine):
 			elif data[Constants.message_key] == Message.global_best_neighbour:
 				print "\n",data
 				index = data[Constants.body][Field.myChangedNeuron]
+				self.globalCurrentState[index] = 1 - self.globalCurrentState[index]
 				isUpdateNeeded = False
 				newJ = -1
 				if index >= self.beginIndex and index < self.endIndex:
@@ -305,15 +306,15 @@ class SubTM(TabuMachine):
 		:param state:
 		:return: the value of the energy function for this agent (node)
 		"""
-		assert len(state) == self._size
+		# assert len(state) == self._size
 
 		tmp = 0
 		for i in range(self.beginIndex,self.endIndex):
 			newI = i - self.beginIndex
 			for j in range(len(self.globalCurrentState)):
 				tmp += self.myWeights[newI][j]* self.globalCurrentState [i] * self.globalCurrentState [j]
-		print ("My state is: " + str(state[self.begin_index:self.endIndex]))
-		return -1/2 * self.myA * tmp + self.myB * sum(state[self.begin_index:self.endIndex])
+		print ("My state is: " + str(self.globalCurrentState[self.beginIndex:self.endIndex]))
+		return -1/2 * self.myA * tmp + self.myB * sum(self.globalCurrentState[self.beginIndex:self.endIndex])
 
 	def set_global_current_state(self, state):
 		self.globalCurrentState = state
